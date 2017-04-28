@@ -11,6 +11,6 @@ public interface EntityAccess {
 	
 	public Writable getOne(final Class<? extends Readable> type, final int id) throws RoseException;
 	
-	public List<Writable> getMany(final Class<? extends Readable> type, final List<Integer> ids) throws RoseException;
+	public List<? extends Writable> getMany(final Class<? extends Readable> type, final List<Integer> ids) throws RoseException;
 	
 }

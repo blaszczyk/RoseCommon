@@ -41,17 +41,16 @@ public class RestController implements ModelController, EntityAccess {
 	}
 	
 	@Override
-	public Readable getEntityById(final Class<? extends Readable> type, int id) throws RoseException
+	public Readable getEntityById(final Class<? extends Readable> type, final int id) throws RoseException
 	{
 		final RoseDto dto = client.getDto(type.getSimpleName().toLowerCase(), id);
 		return RoseProxy.create(dto, access);
 	}
 	
 	@Override
-	public List<? extends Readable> getEntitiesByIds(Class<? extends Readable> type, List<Integer> ids) throws RoseException
+	public List<? extends Readable> getEntitiesByIds(final Class<? extends Readable> type, final List<Integer> ids) throws RoseException
 	{
-		final List<RoseDto> dtos = client.getDtos(type.getSimpleName().toLowerCase(), ids);
-		return createProxys(dtos);
+		return getMany(type, ids);
 	}
 	
 	@Override
