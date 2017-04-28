@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.NoSuchElementException;
 import java.util.Spliterator;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.log4j.Logger;
@@ -17,30 +18,49 @@ import bn.blaszczyk.rose.model.Writable;
 import bn.blaszczyk.rosecommon.RoseException;
 
 public class LazyList implements List<Writable> 
-{	
-	private final List<Writable> list;
+{
+	private final Logger LOGGER = Logger.getLogger(LazyList.class);
+	
+	private List<Writable> list;
 	
 	private final Class<? extends Readable> type;
 	private final List<Integer> ids;
 	private final EntityAccess access;
 	
-	private boolean allFetched = false;
+	private final boolean providingLazyIterator;
 	
-	public LazyList(final Class<? extends Readable> type, final List<Integer> ids, final EntityAccess access)
+	private boolean allFetched = false;
+
+	public LazyList(final Class<? extends Readable> type, final List<Integer> ids, final EntityAccess access, final boolean providingLazyIterator)
 	{
 		list = new ArrayList<>(Collections.nCopies(ids.size(), null));
 		this.type = type;
-		this.ids = ids;
+		this.ids = new ArrayList<>(ids);
 		this.access = access;
+		this.providingLazyIterator = providingLazyIterator;
+	}
+
+	public LazyList(final Class<? extends Readable> type, final List<Integer> ids, final EntityAccess access)
+	{
+		this(type, ids, access, false);
 	}
 
 	private void fetchAll()
 	{
 		if(allFetched)
 			return;
-		for(int i = 0; i < ids.size(); i++ )
-			fetch(i);
-		allFetched = true;
+		try
+		{
+			list = access.getMany(type, ids)
+						.stream()
+						.map(Writable.class::cast)
+						.collect(Collectors.toList());
+			allFetched = true;
+		}
+		catch (RoseException e)
+		{
+			LOGGER.error("Unable to fetch " + type + " ids=" + ids, e);
+		}
 	}
 	
 	private void fetch(int index)
@@ -58,7 +78,7 @@ public class LazyList implements List<Writable>
 		}
 		catch (RoseException e) 
 		{
-			Logger.getLogger(LazyList.class).error("Unable to fetch " + type.getSimpleName() + " with id=" + id, e);
+			LOGGER.error("Unable to fetch " + type.getSimpleName() + " with id=" + id, e);
 		}
 	}
 
@@ -147,6 +167,8 @@ public class LazyList implements List<Writable>
 	@Override
 	public Iterator<Writable> iterator()
 	{
+		if(allFetched || !providingLazyIterator)
+			return list.iterator();
 		return new LazyIterator();
 	}
 
