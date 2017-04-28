@@ -1,6 +1,7 @@
 
 package bn.blaszczyk.rosecommon.controller;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import org.apache.log4j.Logger;
 
@@ -15,7 +16,9 @@ public class CacheController extends AbstractControllerDecorator implements Mode
 	
 	private static final Logger LOGGER = Logger.getLogger(CacheController.class);
 
-	private final Map<Class<?>,Map<Integer,Readable>> allEntities = new HashMap<>();
+	private final Map<Class<? extends Readable>,Map<Integer,Readable>> allEntities = new HashMap<>();
+	
+	private final Set<Class<? extends Readable>> fetchedTypes = new HashSet<>() ;
 
 	public CacheController(final ModelController controller)
 	{
@@ -27,10 +30,22 @@ public class CacheController extends AbstractControllerDecorator implements Mode
 	@Override
 	public List<Readable> getEntities(final Class<? extends Readable> type) throws RoseException
 	{
-		final Map<Integer,Readable> entities = allEntities.get(type);
-		if(entities.isEmpty())
+		if(!fetchedTypes.contains(type))
 			synchronize(type);
-		return Collections.unmodifiableList(new ArrayList<Readable>(entities.values()));
+		final Collection<Readable> entities = allEntities.get(type).values();
+		return Collections.unmodifiableList(new ArrayList<Readable>(entities));
+	}
+	
+	@Override
+	public List<Integer> getIds(Class<? extends Readable> type) throws RoseException
+	{
+		if(!fetchedTypes.contains(type))
+			return super.getIds(type);
+		return allEntities.get(type)
+						.values()
+						.stream()
+						.map(Readable::getId)
+						.collect(Collectors.toList());
 	}
 
 	@Override
@@ -85,6 +100,7 @@ public class CacheController extends AbstractControllerDecorator implements Mode
 		controller.getEntities(type)
 			.stream()
 			.forEach( e -> entities.put(e.getId(), e));
+		fetchedTypes.add(type);
 	}
 
 	public void clearEntities(final Class<?> type)

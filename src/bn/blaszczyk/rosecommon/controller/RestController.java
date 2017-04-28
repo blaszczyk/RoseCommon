@@ -9,6 +9,7 @@ import bn.blaszczyk.rosecommon.RoseException;
 import bn.blaszczyk.rosecommon.client.RoseClient;
 import bn.blaszczyk.rosecommon.dto.RoseDto;
 import bn.blaszczyk.rosecommon.proxy.EntityAccess;
+import bn.blaszczyk.rosecommon.proxy.LazyList;
 import bn.blaszczyk.rosecommon.proxy.RoseProxy;
 import bn.blaszczyk.rosecommon.tools.TypeManager;
 
@@ -16,6 +17,7 @@ public class RestController implements ModelController, EntityAccess {
 	
 	private final RoseClient client;
 	private EntityAccess access = this;
+	private boolean usingLazyList = false;
 	
 	public RestController(final RoseClient client)
 	{
@@ -27,11 +29,30 @@ public class RestController implements ModelController, EntityAccess {
 		this.access = access;
 	}
 	
+	public void setUsingLazyList(final boolean usingLazyList)
+	{
+		this.usingLazyList = usingLazyList;
+	}
+	
 	@Override
 	public List<? extends Readable> getEntities(final Class<? extends Readable> type) throws RoseException
 	{
-		final List<RoseDto> dtos = client.getDtos(type.getSimpleName());
-		return createProxys(dtos);
+		if(usingLazyList)
+		{
+			final List<Integer> ids = client.getIds(type.getSimpleName().toLowerCase());
+			return new LazyList(type, ids, access);
+		}
+		else
+		{
+			final List<RoseDto> dtos = client.getDtos(type.getSimpleName());
+			return createProxys(dtos);
+		}
+	}
+	
+	@Override
+	public List<Integer> getIds(final Class<? extends Readable> type) throws RoseException
+	{
+		return client.getIds(type.getSimpleName().toLowerCase());
 	}
 	
 	@Override
@@ -50,7 +71,10 @@ public class RestController implements ModelController, EntityAccess {
 	@Override
 	public List<? extends Readable> getEntitiesByIds(final Class<? extends Readable> type, final List<Integer> ids) throws RoseException
 	{
-		return getMany(type, ids);
+		if(usingLazyList)
+			return new LazyList(type, ids, access);
+		else
+			return getMany(type, ids);
 	}
 	
 	@Override

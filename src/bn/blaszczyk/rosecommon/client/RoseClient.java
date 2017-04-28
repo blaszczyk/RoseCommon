@@ -1,6 +1,7 @@
 package bn.blaszczyk.rosecommon.client;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -52,6 +53,25 @@ public class RoseClient {
 		}
 	}
 
+	public List<Integer> getIds(final String typeName) throws RoseException
+	{
+		try
+		{
+			webClient.replacePath("/entity/" + typeName + "/id");
+			webClient.resetQuery();
+			final String response = webClient.get(String.class);
+			final String[] ids = GSON.fromJson(response, String[].class);
+			return Arrays.stream(ids)
+						.map(String::trim)
+						.map(Integer::parseInt)
+						.collect(Collectors.toList());
+		}
+		catch (Exception e) 
+		{
+			throw RoseException.wrap(e, "Error on GET@" + typeName + "/id");
+		}
+	}
+
 	public List<RoseDto> getDtos(final String typeName, final List<Integer> entityIds) throws RoseException
 	{
 		if(entityIds.isEmpty())
@@ -67,7 +87,7 @@ public class RoseClient {
 			webClient.replacePath(path);
 			webClient.resetQuery();
 			final String response = webClient.get(String.class);
-			return Integer.parseInt(response);
+			return Integer.parseInt(response.trim());
 		}
 		catch (Exception e) 
 		{

@@ -85,6 +85,36 @@ public class HibernateController implements ModelController {
 			throw new RoseException("error loading entities: " + type.getName(), e);
 		}
 	}
+	
+	@Override
+	public List<Integer> getIds(final Class<? extends Readable> type) throws RoseException
+	{
+		try
+		{
+			lockSession(true);
+			LOGGER.debug("start load" + " " + type.getSimpleName());
+			Session session = getSession();
+			Criteria criteria = session.createCriteria(type);
+			criteria.setProjection(Projections.property("id"));
+			int fetchTimeSpan = getIntegerValue(FETCH_TIMESPAN, Integer.MAX_VALUE);
+			if(fetchTimeSpan != Integer.MAX_VALUE)
+			{
+				calendar.setTime(new Date());
+				calendar.add(Calendar.DATE, - fetchTimeSpan);
+				criteria.add( Expression.ge(TIMESTAMP,calendar.getTime()));
+				LOGGER.debug("fetch entity age restriction: " + fetchTimeSpan + " days");
+			}
+			
+			List<?> list = criteria.setResultTransformer(Criteria.DISTINCT_ROOT_ENTITY).list();
+			lockSession(false);
+			LOGGER.debug("end load entities: " + type.getName() + " count=" + list.size());
+			return list.stream().map(Integer.class::cast).collect(Collectors.toList());
+		}
+		catch(HibernateException e)
+		{
+			throw new RoseException("error loading entities: " + type.getName(), e);
+		}
+	}
 
 	@Override
 	public int getEntityCount(final Class<? extends Readable> type) throws RoseException
