@@ -10,6 +10,7 @@ import bn.blaszczyk.rosecommon.client.RoseClient;
 import bn.blaszczyk.rosecommon.dto.RoseDto;
 import bn.blaszczyk.rosecommon.proxy.EntityAccess;
 import bn.blaszczyk.rosecommon.proxy.RoseProxy;
+import bn.blaszczyk.rosecommon.tools.TypeManager;
 
 public class RestController implements ModelController, EntityAccess {
 	
@@ -47,19 +48,19 @@ public class RestController implements ModelController, EntityAccess {
 	}
 	
 	@Override
+	public List<? extends Readable> getEntitiesByIds(Class<? extends Readable> type, List<Integer> ids) throws RoseException
+	{
+		final List<RoseDto> dtos = client.getDtos(type.getSimpleName().toLowerCase(), ids);
+		return createProxys(dtos);
+	}
+	
+	@Override
 	public <T extends Readable> T createNew(final Class<T> type) throws RoseException
 	{
-		try
-		{
-			final T entity = type.newInstance();
-			final RoseDto dto = new RoseDto(entity);
-			client.postDto(dto);
-			return entity;
-		}
-		catch(Exception e)
-		{
-			throw RoseException.wrap(e, "Error creating new " + type.getSimpleName());
-		}
+		final T entity = TypeManager.newInstance(type);
+		final RoseDto dto = new RoseDto(entity);
+		client.postDto(dto);
+		return entity;
 	}
 	
 	@Override

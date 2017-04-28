@@ -23,7 +23,7 @@ public class CacheController extends AbstractControllerDecorator implements Mode
 		for(Class<? extends Readable> type : TypeManager.getEntityClasses())
 			allEntities.put(type, new TreeMap<>());
 	}
-
+	
 	@Override
 	public List<Readable> getEntities(final Class<? extends Readable> type) throws RoseException
 	{
@@ -45,6 +45,21 @@ public class CacheController extends AbstractControllerDecorator implements Mode
 		if(!hasEntityId(type, id))
 			return addEntity(controller.getEntityById(type, id));
 		return allEntities.get(type).get(id);
+	}
+	
+	@Override
+	public List<? extends Readable> getEntitiesByIds(Class<? extends Readable> type, List<Integer> ids)
+			throws RoseException
+	{
+		final List<Writable> entities = new ArrayList<>(ids.size());
+		final List<Integer> missingIds = new ArrayList<>();
+		for(final Integer id : ids)
+			if(hasEntityId(type, id))
+				entities.add((Writable) allEntities.get(type).get(id));
+			else
+				missingIds.add(id);
+		super.getEntitiesByIds(type, missingIds).forEach( e -> entities.add((Writable)e));
+		return entities;
 	}
 
 	@Override
@@ -113,8 +128,13 @@ public class CacheController extends AbstractControllerDecorator implements Mode
 	public List<Writable> getMany(final Class<? extends Readable> type, final List<Integer> ids) throws RoseException
 	{
 		final List<Writable> entities = new ArrayList<>(ids.size());
+		final List<Integer> missingIds = new ArrayList<>();
 		for(final Integer id : ids)
-			entities.add(getOne(type, id));
+			if(hasEntityId(type, id))
+				entities.add((Writable) allEntities.get(type).get(id));
+			else
+				missingIds.add(id);
+		super.getEntitiesByIds(type, missingIds).forEach( e -> entities.add((Writable)e));
 		return entities;
 	}
 

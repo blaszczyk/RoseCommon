@@ -34,6 +34,12 @@ public abstract class AbstractControllerDecorator implements ModelController {
 	}
 	
 	@Override
+	public List<? extends Readable> getEntitiesByIds(Class<? extends Readable> type, List<Integer> ids) throws RoseException
+	{
+		return controller.getEntitiesByIds(type, ids);
+	}
+	
+	@Override
 	public <T extends Readable> T createNew(Class<T> type) throws RoseException
 	{
 		return controller.createNew(type);

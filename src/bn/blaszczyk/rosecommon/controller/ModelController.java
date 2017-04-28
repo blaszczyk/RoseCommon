@@ -15,6 +15,8 @@ public interface ModelController
 	
 	public Readable getEntityById(Class<? extends Readable> type, int id) throws RoseException;
 	
+	public List<? extends Readable> getEntitiesByIds(Class<? extends Readable> type, List<Integer> ids) throws RoseException;
+	
 	public <T extends Readable> T createNew(Class<T> type) throws RoseException;
 	
 	public Writable createCopy(Writable entity) throws RoseException;

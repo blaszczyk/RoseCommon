@@ -28,7 +28,7 @@ public class RoseProxy implements InvocationHandler {
 	{
 		final RoseProxy handler = new RoseProxy(dto, access);
 		final ClassLoader loader = dto.getType().getClassLoader();
-		final Class<?>[] interfaces = new Class<?>[]{dto.getType()};
+		final Class<?>[] interfaces = new Class<?>[]{dto.getType(),Comparable.class};
 		final Writable proxy = (Writable) Proxy.newProxyInstance(loader, interfaces, handler);
 		return proxy;
 	}
@@ -44,26 +44,19 @@ public class RoseProxy implements InvocationHandler {
 	
 	private RoseProxy(final RoseDto dto, final EntityAccess access) throws RoseException
 	{
-		try
-		{
-			this.access = access;
-			entity = (Writable) dto.getType().newInstance();
-			entityModel = TypeManager.getEntity(entity);
-			
-			fetched = new boolean[entity.getEntityCount()];
-			Arrays.fill(fetched, false);
-			allIds = new ArrayList<>(entity.getEntityCount());
-			
-			entity.setId(dto.getId());
-			for(int i = 0; i < entity.getFieldCount(); i++)
-				setPrimitive(i, dto.getFieldValue(i));
-			for(int i = 0; i < entity.getEntityCount(); i++)
-				setEntity(i, dto);
-		}
-		catch (InstantiationException | IllegalAccessException e)
-		{
-			throw RoseException.wrap(e, "Error creating proxy for " + dto);
-		}
+		this.access = access;
+		entity = (Writable) TypeManager.newInstance(dto.getType());
+		entityModel = TypeManager.getEntity(entity);
+		
+		fetched = new boolean[entity.getEntityCount()];
+		Arrays.fill(fetched, false);
+		allIds = new ArrayList<>(entity.getEntityCount());
+		
+		entity.setId(dto.getId());
+		for(int i = 0; i < entity.getFieldCount(); i++)
+			setPrimitive(i, dto.getFieldValue(i));
+		for(int i = 0; i < entity.getEntityCount(); i++)
+			setEntity(i, dto);
 	}
 	
 	@Override
@@ -114,6 +107,7 @@ public class RoseProxy implements InvocationHandler {
 	{
 		if(fetched[index])
 			return;
+		fetched[index] = true;
 		final EntityField field = entityModel.getEntityFields().get(index);
 		final Class<? extends Readable> type = TypeManager.getClass(field.getEntity());
 		final List<Integer> ids = allIds.get(index);
@@ -129,11 +123,11 @@ public class RoseProxy implements InvocationHandler {
 				if(id >= 0)
 					entity.setEntity(index, access.getOne(type, id));
 			}
-			fetched[index] = true;
 		}
 		catch (RoseException e) 
 		{
 			LOGGER.error(String.format("Unable to fetch %s %s for %s", type.getSimpleName(),ids.toString(), EntityUtils.toStringSimple(entity) ), e);
+			fetched[index]=false;
 		}
 	}
 	

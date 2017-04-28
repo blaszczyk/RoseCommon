@@ -25,6 +25,7 @@ import bn.blaszczyk.rose.model.Readable;
 import bn.blaszczyk.rose.model.Writable;
 import bn.blaszczyk.rosecommon.RoseException;
 import bn.blaszczyk.rosecommon.tools.EntityUtils;
+import bn.blaszczyk.rosecommon.tools.TypeManager;
 
 import static bn.blaszczyk.rosecommon.tools.Preferences.*;
 
@@ -86,21 +87,6 @@ public class HibernateController implements ModelController {
 	}
 
 	@Override
-	public Readable getEntityById(final Class<? extends Readable> type, final int id) throws RoseException
-	{
-		try
-		{
-			final Criteria criteria = getSession().createCriteria(type);
-			criteria.add(Restrictions.idEq(id));
-			return (Readable) criteria.uniqueResult();
-		}
-		catch (HibernateException e) 
-		{
-			throw RoseException.wrap(e, "error getting " + type.getSimpleName() + " with id=" + id);
-		}
-	}
-
-	@Override
 	public int getEntityCount(final Class<? extends Readable> type) throws RoseException
 	{
 		try
@@ -114,6 +100,31 @@ public class HibernateController implements ModelController {
 		{
 			throw RoseException.wrap(e, "error getting count for " + type.getSimpleName());
 		}
+	}
+
+	@Override
+	public Readable getEntityById(final Class<? extends Readable> type, final int id) throws RoseException
+	{
+		try
+		{
+			final Criteria criteria = getSession().createCriteria(type);
+			criteria.add(Restrictions.idEq(id));
+			return (Readable) criteria.uniqueResult();
+		}
+		catch (HibernateException e) 
+		{
+			throw RoseException.wrap(e, "error getting " + type.getSimpleName() + " with id=" + id);
+		}
+	}
+	
+	@Override
+	public List<? extends Readable> getEntitiesByIds(final Class<? extends Readable> type, List<Integer> ids)
+			throws RoseException
+	{
+		final List<Readable> entities = new ArrayList<>();
+		for(final Integer id : ids)
+			entities.add(getEntityById(type, id));
+		return entities;
 	}
 
 	@Override
@@ -187,30 +198,23 @@ public class HibernateController implements ModelController {
 	}
 
 	@Override
-	public <T extends Readable> T createNew(Class<T> type) throws RoseException
+	public <T extends Readable> T createNew(final Class<T> type) throws RoseException
 	{
-		try
-		{
-			T entity = type.newInstance();
-			lockSession(true);
-			Session session = getSession();
-			session.beginTransaction();
-			entity.setId((Integer) session.save(entity));
-			session.getTransaction().commit();
-			lockSession(false);
-			LOGGER.info("new entity: " + EntityUtils.toStringPrimitives(entity));
-			return entity;
-		}
-		catch (InstantiationException | IllegalAccessException e)
-		{
-			throw new RoseException("unable to create new " + type.getName(), e);
-		}
+		final T entity = TypeManager.newInstance(type);
+		lockSession(true);
+		final Session session = getSession();
+		session.beginTransaction();
+		entity.setId((Integer) session.save(entity));
+		session.getTransaction().commit();
+		lockSession(false);
+		LOGGER.info("new entity: " + EntityUtils.toStringPrimitives(entity));
+		return entity;
 	}
 	
 	@Override
-	public Writable createCopy(Writable entity) throws RoseException
+	public Writable createCopy(final Writable entity) throws RoseException
 	{
-		Writable copy = createNew(entity.getClass());
+		final Writable copy = createNew(entity.getClass());
 		for(int i = 0; i < copy.getFieldCount(); i++)
 			copy.setField( i, copy.getFieldValue(i));
 		for(int i = 0; i < copy.getEntityCount(); i++)
