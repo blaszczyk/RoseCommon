@@ -1,5 +1,7 @@
 package bn.blaszczyk.rosecommon.client;
 
+import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -16,6 +18,8 @@ import bn.blaszczyk.rosecommon.RoseException;
 import bn.blaszczyk.rosecommon.dto.RoseDto;
 
 public class RoseClient {
+
+	public static final String CODING_CHARSET = "UTF-8";
 
 	private static final Gson GSON = new Gson();
 	
@@ -41,7 +45,8 @@ public class RoseClient {
 			webClient.replacePath("/entity/" + path);
 			webClient.resetQuery();
 			final List<RoseDto> dtos = new ArrayList<>();
-			final String response = webClient.get(String.class);
+			final String encodedResponse = webClient.get(String.class);
+			final String response = URLDecoder.decode(encodedResponse, CODING_CHARSET);
 			final StringMap<?>[] stringMaps = GSON.fromJson(response, StringMap[].class);
 			for(StringMap<?> stringMap : stringMaps)
 				dtos.add(new RoseDto(stringMap));
@@ -59,7 +64,8 @@ public class RoseClient {
 		{
 			webClient.replacePath("/entity/" + typeName + "/id");
 			webClient.resetQuery();
-			final String response = webClient.get(String.class);
+			final String encodedResponse = webClient.get(String.class);
+			final String response = URLDecoder.decode(encodedResponse, CODING_CHARSET);
 			final String[] ids = GSON.fromJson(response, String[].class);
 			return Arrays.stream(ids)
 						.map(String::trim)
@@ -86,7 +92,8 @@ public class RoseClient {
 		{
 			webClient.replacePath(path);
 			webClient.resetQuery();
-			final String response = webClient.get(String.class);
+			final String encodedResponse = webClient.get(String.class);
+			final String response = URLDecoder.decode(encodedResponse, CODING_CHARSET);
 			return Integer.parseInt(response.trim());
 		}
 		catch (Exception e) 
@@ -102,7 +109,10 @@ public class RoseClient {
 		{
 			webClient.replacePath(path);
 			webClient.resetQuery();
-			final String response = webClient.post(GSON.toJson(dto),String.class);
+			final String request = GSON.toJson(dto);
+			final String encodedRequest = URLEncoder.encode(request, CODING_CHARSET);
+			final String encodedResponse = webClient.post(encodedRequest,String.class);
+			final String response = URLDecoder.decode(encodedResponse, CODING_CHARSET);
 			final StringMap<?> stringMap = GSON.fromJson(response, StringMap.class);
 			return new RoseDto(stringMap);
 		}
@@ -119,7 +129,9 @@ public class RoseClient {
 		{
 			webClient.replacePath(path);
 			webClient.resetQuery();
-			webClient.put(GSON.toJson(dto));
+			final String request = GSON.toJson(dto);
+			final String encodedRequest = URLEncoder.encode(request, CODING_CHARSET);
+			webClient.put(encodedRequest);
 		}
 		catch (Exception e) 
 		{
@@ -149,7 +161,8 @@ public class RoseClient {
 		{
 			webClient.replacePath("/server/status");
 			webClient.resetQuery();
-			final String response = webClient.get(String.class);
+			final String encodedResponse = webClient.get(String.class);
+			final String response = URLDecoder.decode(encodedResponse, CODING_CHARSET);
 			final StringMap<?> status = GSON.fromJson(response, StringMap.class);
 			return status.entrySet().stream().
 				collect(Collectors.toMap(e -> e.getKey(), e -> String.valueOf(e.getValue())));
@@ -158,6 +171,11 @@ public class RoseClient {
 		{
 			throw RoseException.wrap(e, "error on GET@/server/status");
 		}
+	}
+	
+	public void close()
+	{
+		webClient.close();
 	}
 	
 	private String pathForType(final RoseDto dto) throws RoseException

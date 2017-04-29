@@ -107,6 +107,12 @@ public class RestController implements ModelController, EntityAccess {
 	}
 
 	@Override
+	public void close()
+	{
+		client.close();
+	}
+
+	@Override
 	public Writable getOne(final Class<? extends Readable> type, final int id) throws RoseException
 	{
 		final RoseDto dto = client.getDto(type.getSimpleName().toLowerCase(), id);

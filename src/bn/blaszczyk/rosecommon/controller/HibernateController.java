@@ -1,11 +1,7 @@
 
 package bn.blaszczyk.rosecommon.controller;
-import java.awt.event.ActionEvent;
-import java.sql.SQLException;
 import java.util.*;
 import java.util.stream.Collectors;
-
-import javax.swing.Timer;
 
 import org.apache.log4j.Logger;
 import org.hibernate.Criteria;
@@ -19,7 +15,6 @@ import org.hibernate.cfg.Configuration;
 import org.hibernate.criterion.Expression;
 import org.hibernate.criterion.Projections;
 import org.hibernate.criterion.Restrictions;
-import org.hibernate.impl.SessionImpl;
 
 import bn.blaszczyk.rose.model.Readable;
 import bn.blaszczyk.rose.model.Writable;
@@ -43,17 +38,9 @@ public class HibernateController implements ModelController {
 	private SessionFactory sessionFactory;
 	private Session session;
 
-	private String dbFullUrl;
-	private String dbMessage;
-	private boolean connected = false;
-	private boolean lockSession = false;
-	private Timer timer = new Timer(5000, e -> checkConnection(e));
-
 	public HibernateController()
 	{
 		configureDataBase();
-		timer.setInitialDelay(1000);
-		timer.start();
 	}
 
 	@Override
@@ -61,24 +48,26 @@ public class HibernateController implements ModelController {
 	{
 		try
 		{
-			lockSession(true);
 			LOGGER.debug("start load" + " " + type.getSimpleName());
 			Session session = getSession();
-			Criteria criteria = session.createCriteria(type);
-
-			int fetchTimeSpan = getIntegerValue(FETCH_TIMESPAN, Integer.MAX_VALUE);
-			if(fetchTimeSpan != Integer.MAX_VALUE)
+			synchronized (session)
 			{
-				calendar.setTime(new Date());
-				calendar.add(Calendar.DATE, - fetchTimeSpan);
-				criteria.add( Expression.ge(TIMESTAMP,calendar.getTime()));
-				LOGGER.debug("fetch entity age restriction: " + fetchTimeSpan + " days");
+				Criteria criteria = session.createCriteria(type);
+
+				int fetchTimeSpan = getIntegerValue(FETCH_TIMESPAN, Integer.MAX_VALUE);
+				if(fetchTimeSpan != Integer.MAX_VALUE)
+				{
+					calendar.setTime(new Date());
+					calendar.add(Calendar.DATE, - fetchTimeSpan);
+					criteria.add( Expression.ge(TIMESTAMP,calendar.getTime()));
+					LOGGER.debug("fetch entity age restriction: " + fetchTimeSpan + " days");
+				}
+				
+				List<?> list = criteria.setResultTransformer(Criteria.DISTINCT_ROOT_ENTITY).list();
+				LOGGER.debug("end load entities: " + type.getName() + " count=" + list.size());
+				return list.stream().map(Readable.class::cast).collect(Collectors.toList());
+				
 			}
-			
-			List<?> list = criteria.setResultTransformer(Criteria.DISTINCT_ROOT_ENTITY).list();
-			lockSession(false);
-			LOGGER.debug("end load entities: " + type.getName() + " count=" + list.size());
-			return list.stream().map(Readable.class::cast).collect(Collectors.toList());
 		}
 		catch(HibernateException e)
 		{
@@ -89,42 +78,51 @@ public class HibernateController implements ModelController {
 	@Override
 	public List<Integer> getIds(final Class<? extends Readable> type) throws RoseException
 	{
+		final Session session = getSession();
+		final String message = "fetching all ids of" + type.getSimpleName();
 		try
 		{
-			lockSession(true);
-			LOGGER.debug("start load" + " " + type.getSimpleName());
-			Session session = getSession();
-			Criteria criteria = session.createCriteria(type);
-			criteria.setProjection(Projections.property("id"));
-			int fetchTimeSpan = getIntegerValue(FETCH_TIMESPAN, Integer.MAX_VALUE);
-			if(fetchTimeSpan != Integer.MAX_VALUE)
+			synchronized (session)
 			{
-				calendar.setTime(new Date());
-				calendar.add(Calendar.DATE, - fetchTimeSpan);
-				criteria.add( Expression.ge(TIMESTAMP,calendar.getTime()));
-				LOGGER.debug("fetch entity age restriction: " + fetchTimeSpan + " days");
+				LOGGER.debug("start " + message);
+				final Criteria criteria = session.createCriteria(type);
+				criteria.setProjection(Projections.property("id"));
+				final int fetchTimeSpan = getIntegerValue(FETCH_TIMESPAN, Integer.MAX_VALUE);
+				if(fetchTimeSpan != Integer.MAX_VALUE)
+				{
+					calendar.setTime(new Date());
+					calendar.add(Calendar.DATE, - fetchTimeSpan);
+					criteria.add( Expression.ge(TIMESTAMP,calendar.getTime()));
+				}				
+				final List<?> list = criteria.setResultTransformer(Criteria.DISTINCT_ROOT_ENTITY).list();
+				LOGGER.debug("end " + message + " count=" + list.size());
+				return list.stream().map(Integer.class::cast).collect(Collectors.toList());
 			}
-			
-			List<?> list = criteria.setResultTransformer(Criteria.DISTINCT_ROOT_ENTITY).list();
-			lockSession(false);
-			LOGGER.debug("end load entities: " + type.getName() + " count=" + list.size());
-			return list.stream().map(Integer.class::cast).collect(Collectors.toList());
 		}
 		catch(HibernateException e)
 		{
-			throw new RoseException("error loading entities: " + type.getName(), e);
+			throw new RoseException("error " + message, e);
 		}
 	}
 
 	@Override
 	public int getEntityCount(final Class<? extends Readable> type) throws RoseException
 	{
+		final Session session = getSession();
+		final String message = "fetching count for " + type.getSimpleName();
 		try
 		{
-			final Object oCount = getSession().createCriteria(type).setProjection(Projections.rowCount()).uniqueResult();
-			if(oCount instanceof Number)
-				return ((Number)oCount).intValue();
-			return 0;
+			synchronized (session)
+			{
+				LOGGER.debug("start " + message);
+				final Object oCount = session.createCriteria(type)
+										.setProjection(Projections.rowCount())
+										.uniqueResult();
+				LOGGER.debug("end " + message + " count= " + oCount);
+				if(oCount instanceof Number)
+					return ((Number)oCount).intValue();
+				throw new RoseException("No Number instance: " + oCount);
+			}
 		}
 		catch (HibernateException e) 
 		{
@@ -135,11 +133,19 @@ public class HibernateController implements ModelController {
 	@Override
 	public Readable getEntityById(final Class<? extends Readable> type, final int id) throws RoseException
 	{
+		final Session session = getSession();
+		final String message = "fetching " + type.getSimpleName() + " id=" + id;
 		try
 		{
-			final Criteria criteria = getSession().createCriteria(type);
-			criteria.add(Restrictions.idEq(id));
-			return (Readable) criteria.uniqueResult();
+			synchronized (session)
+			{
+				LOGGER.debug("start " + message);
+				final Criteria criteria = session.createCriteria(type);
+				criteria.add(Restrictions.idEq(id));
+				final Readable result = (Readable) criteria.uniqueResult();
+				LOGGER.debug("end " + message);
+				return result;
+			}
 		}
 		catch (HibernateException e) 
 		{
@@ -151,41 +157,56 @@ public class HibernateController implements ModelController {
 	public List<? extends Readable> getEntitiesByIds(final Class<? extends Readable> type, List<Integer> ids)
 			throws RoseException
 	{
-		final List<Readable> entities = new ArrayList<>();
-		for(final Integer id : ids)
-			entities.add(getEntityById(type, id));
-		return entities;
+		final Session session = getSession();
+		final String message = "fetching " + type.getSimpleName() + " ids=" + ids;
+		try
+		{
+			synchronized (session)
+			{
+				LOGGER.debug("start " + message);
+				final Criteria criteria = session.createCriteria(type);
+				criteria.add(Restrictions.in("id", ids));
+				final List<?> list = criteria.list();
+				final List<Readable> entities = list.stream().map(Readable.class::cast).collect(Collectors.toList());
+				LOGGER.debug("start " + message);
+				return entities;
+			}
+		}
+		catch (HibernateException e) 
+		{
+			throw RoseException.wrap(e, "error getting " + type.getSimpleName() + " with ids=" + ids);
+		}
 	}
 
 	@Override
 	public void update(Writable... entities) throws RoseException
 	{
 		final Session session = getSession();
-		Transaction transaction = null;
 		try
 		{
-			lockSession(true);
-			LOGGER.debug("start update");
-			transaction = session.beginTransaction();
-			for(Writable entity : entities)
+			synchronized (session)
 			{
-				if(entity == null)
-					continue;
-				if(entity.getId() < 0)
+				LOGGER.debug("start update");
+				final Transaction transaction = session.beginTransaction();
+				for(Writable entity : entities)
 				{
-					LOGGER.warn("saving new entity:\r\n" + EntityUtils.toStringFull(entity));
-					final Integer id = (Integer) session.save(entity);
-					entity.setId(id);
+					if(entity == null)
+						continue;
+					if(entity.getId() < 0)
+					{
+						LOGGER.warn("saving new entity:\r\n" + EntityUtils.toStringFull(entity));
+						final Integer id = (Integer) session.save(entity);
+						entity.setId(id);
+					}
+					else
+					{
+						LOGGER.debug("updating entity:\r\n" + EntityUtils.toStringFull(entity));
+						session.update(entity);
+					}
 				}
-				else
-				{
-					LOGGER.debug("updating entity:\r\n" + EntityUtils.toStringFull(entity));
-					session.update(entity);
-				}
+				transaction.commit();
+				LOGGER.debug("end update");
 			}
-			transaction.commit();
-			LOGGER.debug("end update");
-			lockSession(false);
 		}
 		catch(HibernateException e)
 		{
@@ -194,36 +215,37 @@ public class HibernateController implements ModelController {
 	}
 
 	@Override
-	public void delete(Writable entity) throws RoseException
+	public void delete(final Writable entity) throws RoseException
 	{
 		if(entity == null)
 			return;
-		LOGGER.warn("delete entity:\r\n" + EntityUtils.toStringFull(entity));
+		LOGGER.warn("start deleting entity:\r\n" + EntityUtils.toStringFull(entity));
+		final Session sesson = getSession();
 		final Set<Writable> changedEntities = new LinkedHashSet<>();
-		for(int i = 0; i < entity.getEntityCount(); i++)
+		synchronized (sesson)
 		{
-			if(entity.getRelationType(i).isSecondMany())
-				for(final Readable subEntity : entity.getEntityValueMany(i))
-					if(subEntity != null)
-						changedEntities.add((Writable) subEntity);
-			else
-				if(entity.getEntityValueOne(i) != null)
-					changedEntities.add((Writable) entity.getEntityValueOne(i));
-		}
-		update(changedEntities.toArray(new Writable[changedEntities.size()]));
-		try
-		{
-			lockSession(true);
-			Session sesson = getSession();
-			sesson.beginTransaction();
-			sesson.delete(entity);
-			sesson.getTransaction().commit();
-			lockSession(false);
-			LOGGER.debug("entity deleted: " + EntityUtils.toStringSimple(entity));
-		}
-		catch(HibernateException e)
-		{
-			throw new RoseException("error deleting " + entity, e);
+			for(int i = 0; i < entity.getEntityCount(); i++)
+			{
+				if(entity.getRelationType(i).isSecondMany())
+					for(final Readable subEntity : entity.getEntityValueMany(i))
+						if(subEntity != null)
+							changedEntities.add((Writable) subEntity);
+				else
+					if(entity.getEntityValueOne(i) != null)
+						changedEntities.add((Writable) entity.getEntityValueOne(i));
+			}
+			update(changedEntities.toArray(new Writable[changedEntities.size()]));
+			try
+			{
+				sesson.beginTransaction();
+				sesson.delete(entity);
+				sesson.getTransaction().commit();
+				LOGGER.debug("end deleting entity: " + EntityUtils.toStringSimple(entity));
+			}
+			catch(HibernateException e)
+			{
+				throw new RoseException("error deleting " + entity, e);
+			}			
 		}
 	}
 
@@ -231,13 +253,15 @@ public class HibernateController implements ModelController {
 	public <T extends Readable> T createNew(final Class<T> type) throws RoseException
 	{
 		final T entity = TypeManager.newInstance(type);
-		lockSession(true);
 		final Session session = getSession();
-		session.beginTransaction();
-		entity.setId((Integer) session.save(entity));
-		session.getTransaction().commit();
-		lockSession(false);
-		LOGGER.info("new entity: " + EntityUtils.toStringPrimitives(entity));
+		synchronized (session)
+		{
+			LOGGER.debug("start creating " + type.getSimpleName());
+			session.beginTransaction();
+			entity.setId((Integer) session.save(entity));
+			session.getTransaction().commit();
+		}
+		LOGGER.debug("end creating: " + EntityUtils.toStringPrimitives(entity));
 		return entity;
 	}
 	
@@ -267,53 +291,69 @@ public class HibernateController implements ModelController {
 		return copy;
 	}
 	
-	public List<?> listQuery( String query) throws RoseException
+	@Override
+	public void close()
 	{
-		lockSession(true);
-		SQLQuery sqlQuery = session.createSQLQuery(query);
+		if(session != null && !session.isOpen())
+		{
+			LOGGER.debug("closing session " + session);
+			synchronized (session)
+			{
+				session.close();
+			}
+			LOGGER.debug("session closed");
+		}
+		session = null;
+	}
+	
+	public List<?> listQuery( final String query ) throws RoseException
+	{
+		final Session session = getSession();
 		try
 		{
-			List<?> list = sqlQuery.setResultTransformer(Criteria.ROOT_ENTITY).list();
-			if(list == null)
-				return Collections.emptyList();
-			return list;
+			synchronized (session)
+			{
+				LOGGER.debug("start query \"" + query + "\"");
+				final SQLQuery sqlQuery = session.createSQLQuery(query);
+				final List<?> list = sqlQuery.setResultTransformer(Criteria.ROOT_ENTITY).list();
+				if(list == null)
+					return Collections.emptyList();
+				return list;
+			}
 		}
 		catch(HibernateException e)
 		{
 			throw new RoseException("Unable to execute query '" + query + "'", e);
 		}
-		finally 
-		{
-			lockSession(false);
-		}
 	}
 
-	private void checkConnection(ActionEvent e)
-	{
-		if(sessionLocked())
-			return;
-		String message;
-		boolean wasConnected = connected;
-		if(session instanceof SessionImpl)
-		{
-			try
-			{
-				connected = ((SessionImpl)session).connection().isValid(10);
-			}
-			catch (HibernateException | SQLException e1)
-			{
-				if(wasConnected)
-				{
-					LOGGER.error("no connection to " + dbFullUrl, e1);
-				}
-				connected = false;
-			}
-			message =  connected ? "connected" : "disconnected" ;
-		}
-		else
-			message = "unknown";
-		LOGGER.debug(dbMessage + " - " + message);
-	}
+	//TODO: refactor to something useful
+//	private void checkConnection()
+//	{
+//		if(sessionLocked())
+//			return;
+//		String message;
+//		boolean wasConnected = connected;
+//		if(session instanceof SessionImpl)
+//		{
+//			try
+//			{
+//				connected = ((SessionImpl)session).connection().isValid(10);
+//			}
+//			catch (HibernateException | SQLException e1)
+//			{
+//				if(wasConnected)
+//				{
+//					LOGGER.error("no connection to " + dbFullUrl, e1);
+//				}
+//				connected = false;
+//			}
+//			message =  connected ? "connected" : "disconnected" ;
+//		}
+//		else
+//			message = "unknown";
+//		LOGGER.debug(dbMessage + " - " + message);
+//	}
 
 	private void configureDataBase()
 	{
@@ -331,23 +371,9 @@ public class HibernateController implements ModelController {
 		if(dbpassword != null)
 			configuration.setProperty(KEY_PW, dbpassword);
 		sessionFactory = configuration.buildSessionFactory();
-		dbFullUrl = configuration.getProperty(KEY_URL);
-		dbMessage = "database" + " " + dbFullUrl;
-	}
-	
-	public void closeSession()
-	{
-		timer.stop();
-		if(session != null)
-		{
-			LOGGER.debug("closing session " + session);
-			session.close();
-			LOGGER.debug("session closed");
-		}
-		session = null;
 	}
 
-	private Session getSession()
+	private Session getSession() throws RoseException
 	{
 		if(session == null || !session.isOpen())
 		{
@@ -357,25 +383,12 @@ public class HibernateController implements ModelController {
 				session = sessionFactory.openSession();
 				LOGGER.info("session open");
 			}
-			catch (HibernateException e) {
-				LOGGER.error("no open session", e);
+			catch (HibernateException e) 
+			{
+				throw new RoseException("no open session", e);
 			}
 		}
 		return session;
-	}
-
-	private boolean sessionLocked()
-	{
-		return lockSession;
-	}
-	
-	private void lockSession(boolean lockSession)
-	{
-		if(this.lockSession && lockSession)
-			LOGGER.error("access attempt to locked session");
-		else
-			LOGGER.debug( (lockSession ? "" : "un") + "locking session" );
-		this.lockSession = lockSession;
 	}
 	
 }

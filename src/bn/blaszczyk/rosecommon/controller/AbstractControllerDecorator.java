@@ -69,4 +69,10 @@ public abstract class AbstractControllerDecorator implements ModelController {
 		controller.delete(entity);
 	}
 	
+	@Override
+	public void close()
+	{
+		controller.close();
+	}
+	
 }

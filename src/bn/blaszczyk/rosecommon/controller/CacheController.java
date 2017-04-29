@@ -1,5 +1,5 @@
-
 package bn.blaszczyk.rosecommon.controller;
+
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -74,7 +74,7 @@ public class CacheController extends AbstractControllerDecorator implements Mode
 	{
 		final T entity = controller.createNew(type);
 		addEntity(entity);
-		LOGGER.info("buffering new entity: " + EntityUtils.toStringSimple(entity));
+		LOGGER.debug("caching new entity: " + EntityUtils.toStringSimple(entity));
 		return entity;
 	}
 
@@ -90,7 +90,7 @@ public class CacheController extends AbstractControllerDecorator implements Mode
 	public void delete(Writable entity) throws RoseException
 	{
 		allEntities.get(TypeManager.convertType(entity.getClass())).remove(entity);
-		LOGGER.debug("entity removed from buffer: " + EntityUtils.toStringSimple(entity));
+		LOGGER.debug("removing entity from cache: " + EntityUtils.toStringSimple(entity));
 	}
 	
 	public void synchronize(final Class<? extends Readable> type) throws RoseException
