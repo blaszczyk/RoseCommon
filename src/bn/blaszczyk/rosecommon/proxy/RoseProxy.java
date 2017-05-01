@@ -17,6 +17,7 @@ import bn.blaszczyk.rose.model.Field;
 import bn.blaszczyk.rose.model.Writable;
 import bn.blaszczyk.rose.model.Readable;
 import bn.blaszczyk.rose.model.Representable;
+import bn.blaszczyk.rose.model.Timestamped;
 import bn.blaszczyk.rosecommon.RoseException;
 import bn.blaszczyk.rosecommon.dto.RoseDto;
 import bn.blaszczyk.rosecommon.tools.EntityUtils;
@@ -45,6 +46,7 @@ public class RoseProxy implements InvocationHandler {
 	private final Representable entity;
 	
 	private final boolean[] fetched;
+	private boolean fetchedAll = false;
 	private final List<List<Integer>> allIds;
 	
 	private RoseProxy(final RoseDto dto, final EntityAccess access) throws RoseException
@@ -59,18 +61,25 @@ public class RoseProxy implements InvocationHandler {
 		allIds = new ArrayList<>(entity.getEntityCount());
 		
 		entity.setId(dto.getId());
+		if(dto.hasTimestamp() && entity instanceof Timestamped)
+			((Timestamped)entity).setTimestamp(dto.getTimestamp());
+		
 		for(int i = 0; i < entity.getFieldCount(); i++)
 			setPrimitive(i, dto.getFieldValue(i));
 		for(int i = 0; i < entity.getEntityCount(); i++)
 			setEntityIds(i, dto);
+		checkAllFetched();
 	}
 	
 	@Override
 	public Object invoke(final Object proxy, final Method method, final Object[] args) throws Throwable
 	{
-		final int index = getFetchIndex(method, args);
-		if(index >= 0)
-			fetchIfRequired(index, (Representable) proxy);
+		if(!fetchedAll)
+		{
+			final int index = getFetchIndex(method, args);
+			if(index >= 0)
+				fetchIfRequired(index, (Representable) proxy);
+		}
 		if(needsRepresentation(method))
 			return invokeRepresentorMethod(method, args, proxy);
 		return method.invoke(entity, args);
@@ -87,25 +96,36 @@ public class RoseProxy implements InvocationHandler {
 	{
 		final List<Integer> ids;
 		if(entity.getRelationType(index).isSecondMany())
+		{
 			ids = dto.getEntityIds(index);
+			if(ids.isEmpty())
+				fetched[index] = true;
+		}
 		else
+		{
+			if(dto.getEntityId(index) < 0)
+				fetched[index] = true;
 			ids = Collections.singletonList(dto.getEntityId(index));
+		}
 		allIds.add(index, ids);
 	}
 	
 	private int getFetchIndex(final Method method, final Object[] args)
 	{
 		final String methodName = method.getName();
-		if(! methodName.startsWith("get"))
+		if(! methodName.startsWith("get") || methodName.startsWith("set"))
 			return -1;
-		final String choppedName = methodName.substring(3);
-		if(choppedName.equals("EntityValueOne") || choppedName.equals("EntityValueMany"))
+		if(methodName.equals("getEntityValueOne") || methodName.equals("getEntityValueMany"))
 			if(args.length == 1 && args[0] instanceof Integer)
 				return (Integer)args[0];
+		if(methodName.equals("setEntity"))
+			if(args.length > 1  && args[0] instanceof Integer)
+				return (Integer)args[0];
+		final String choppedName = methodName.substring(3);
 		for(int i = 0; i < entity.getEntityCount(); i++)
 		{
 			final EntityField field = entityModel.getEntityFields().get(i);
-			if( choppedName.equals( field.getCapitalName() + (field.getType().isSecondMany() ? "s" : "")  ) )
+			if( choppedName.equals( field.getCapitalName() ) )
 				return i;
 		}
 		return -1;
@@ -123,16 +143,25 @@ public class RoseProxy implements InvocationHandler {
 			fetch(index,proxy);
 			fetchLock = false;
 		}
+		checkAllFetched();
+	}
+
+	private void checkAllFetched()
+	{
+		fetchedAll = true;
+		for(final boolean fetched : fetched)
+			if(!fetched)
+				fetchedAll = false;
 	}
 
 	private void fetch(final int index, final Representable proxy)
 	{
-		fetched[index] = true;
 		final EntityField field = entityModel.getEntityFields().get(index);
 		final Class<? extends Readable> type = TypeManager.getClass(field.getEntity());
 		final List<Integer> ids = allIds.get(index);
 		try
 		{
+			fetched[index] = true;
 			if(field.getType().isSecondMany())
 				access.getMany(type, ids)
 						.forEach( e -> entity.addEntity(index, e, proxy));

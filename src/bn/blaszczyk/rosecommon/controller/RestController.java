@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import bn.blaszczyk.rose.model.Readable;
+import bn.blaszczyk.rose.model.Timestamped;
 import bn.blaszczyk.rose.model.Writable;
 import bn.blaszczyk.rosecommon.RoseException;
 import bn.blaszczyk.rosecommon.client.RoseClient;
@@ -81,7 +82,10 @@ public class RestController implements ModelController, EntityAccess {
 	{
 		final T entity = TypeManager.newInstance(type);
 		final RoseDto dto = new RoseDto(entity);
-		client.postDto(dto);
+		final RoseDto recievedDto = client.postDto(dto);
+		entity.setId(recievedDto.getId());
+		if(recievedDto.hasTimestamp() && entity instanceof Timestamped)
+			((Timestamped)entity).setTimestamp(recievedDto.getTimestamp());
 		return entity;
 	}
 	

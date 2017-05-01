@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.apache.cxf.jaxrs.client.WebClient;
+import org.apache.log4j.Logger;
 
 import com.google.gson.Gson;
 import com.google.gson.internal.StringMap;
@@ -18,8 +19,10 @@ import bn.blaszczyk.rosecommon.RoseException;
 import bn.blaszczyk.rosecommon.dto.RoseDto;
 
 public class RoseClient {
-
+	
 	public static final String CODING_CHARSET = "UTF-8";
+	
+	private static final Logger LOGGER = Logger.getLogger(RoseClient.class);
 
 	private static final Gson GSON = new Gson();
 	
@@ -38,11 +41,13 @@ public class RoseClient {
 		return dtos.get(0);
 	}
 	
-	public List<RoseDto> getDtos(final String path) throws RoseException
+	public List<RoseDto> getDtos(final String subPath) throws RoseException
 	{
+		final String path = "/entity/" + subPath;
 		try
 		{
-			webClient.replacePath("/entity/" + path);
+			LOGGER.debug("requesting GET@" + path);
+			webClient.replacePath(path);
 			webClient.resetQuery();
 			final List<RoseDto> dtos = new ArrayList<>();
 			final String encodedResponse = webClient.get(String.class);
@@ -50,6 +55,7 @@ public class RoseClient {
 			final StringMap<?>[] stringMaps = GSON.fromJson(response, StringMap[].class);
 			for(StringMap<?> stringMap : stringMaps)
 				dtos.add(new RoseDto(stringMap));
+			LOGGER.debug("decoded response message:\r\n" + response);
 			return dtos;
 		}
 		catch (Exception e) 
@@ -60,13 +66,16 @@ public class RoseClient {
 
 	public List<Integer> getIds(final String typeName) throws RoseException
 	{
+		final String path = "/entity/" + typeName + "/id";
 		try
 		{
-			webClient.replacePath("/entity/" + typeName + "/id");
+			LOGGER.debug("requesting GET@" + path);
+			webClient.replacePath(path);
 			webClient.resetQuery();
 			final String encodedResponse = webClient.get(String.class);
 			final String response = URLDecoder.decode(encodedResponse, CODING_CHARSET);
 			final String[] ids = GSON.fromJson(response, String[].class);
+			LOGGER.debug("decoded response message:\r\n" + response);
 			return Arrays.stream(ids)
 						.map(String::trim)
 						.map(Integer::parseInt)
@@ -74,7 +83,7 @@ public class RoseClient {
 		}
 		catch (Exception e) 
 		{
-			throw RoseException.wrap(e, "Error on GET@" + typeName + "/id");
+			throw RoseException.wrap(e, "Error on GET@" + path);
 		}
 	}
 
@@ -90,10 +99,12 @@ public class RoseClient {
 		final String path = "/entity/" + typeName + "/count";
 		try
 		{
+			LOGGER.debug("requesting GET@/entity/" + typeName + "/count");
 			webClient.replacePath(path);
 			webClient.resetQuery();
 			final String encodedResponse = webClient.get(String.class);
 			final String response = URLDecoder.decode(encodedResponse, CODING_CHARSET);
+			LOGGER.debug("decoded response message:\r\n" + response);
 			return Integer.parseInt(response.trim());
 		}
 		catch (Exception e) 
@@ -107,12 +118,15 @@ public class RoseClient {
 		final String path = pathForType(dto);
 		try
 		{
+			LOGGER.debug("requesting POST@" + path);
 			webClient.replacePath(path);
 			webClient.resetQuery();
 			final String request = GSON.toJson(dto);
+			LOGGER.debug("decoded request message:\r\n" + request);
 			final String encodedRequest = URLEncoder.encode(request, CODING_CHARSET);
 			final String encodedResponse = webClient.post(encodedRequest,String.class);
 			final String response = URLDecoder.decode(encodedResponse, CODING_CHARSET);
+			LOGGER.debug("decoded response message:\r\n" + response);
 			final StringMap<?> stringMap = GSON.fromJson(response, StringMap.class);
 			return new RoseDto(stringMap);
 		}
@@ -127,9 +141,11 @@ public class RoseClient {
 		final String path = pathFor(dto);
 		try
 		{
+			LOGGER.debug("requesting PUT@" + path);
 			webClient.replacePath(path);
 			webClient.resetQuery();
 			final String request = GSON.toJson(dto);
+			LOGGER.debug("decoded request message:\r\n" + request);
 			final String encodedRequest = URLEncoder.encode(request, CODING_CHARSET);
 			webClient.put(encodedRequest);
 		}
@@ -145,6 +161,7 @@ public class RoseClient {
 
 		try
 		{
+			LOGGER.debug("requesting DELETE@" + path);
 			webClient.replacePath(path);
 			webClient.resetQuery();
 			webClient.delete();

@@ -1,13 +1,17 @@
 package bn.blaszczyk.rosecommon.controller;
 
-import java.util.Date;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 import bn.blaszczyk.rose.model.Readable;
 import bn.blaszczyk.rose.model.Timestamped;
 import bn.blaszczyk.rose.model.Writable;
 import bn.blaszczyk.rosecommon.RoseException;
+import bn.blaszczyk.rosecommon.tools.EntityUtils;
+import bn.blaszczyk.rosecommon.tools.TypeManager;
 
 public class ConsistencyController extends AbstractControllerDecorator implements ModelController {
 	
@@ -15,19 +19,47 @@ public class ConsistencyController extends AbstractControllerDecorator implement
 	{
 		super(controller);
 	}
-
+	
 	@Override
-	public void update(Writable... entities) throws RoseException
+	public Readable getEntityById(Class<? extends Readable> type, int id) throws RoseException
 	{
-		final Date date = new Date();
-		for(final Writable entity : entities)
-			if(entity instanceof Timestamped)
-				((Timestamped)entity).setTimestamp(date);
-		super.update(entities);
+		if(id < 0)
+			throw new RoseException("Malicious id: " + id);
+		return controller.getEntityById(type, id);
 	}
 	
 	@Override
-	public void delete(Writable entity) throws RoseException
+	public List<? extends Readable> getEntitiesByIds(final Class<? extends Readable> type, final List<Integer> ids)
+			throws RoseException
+	{
+		if(ids.stream().anyMatch(id -> id < 0))
+			throw new RoseException("Malicious id: " + ids);
+		return controller.getEntitiesByIds(type, ids);
+	}
+
+	@Override
+	public void update(final Writable... entities) throws RoseException
+	{
+		final List<Writable> checkedEntities = Arrays.stream(entities)
+				.filter(e -> e != null)
+				.collect(Collectors.toList());
+		for(final Writable entity : checkedEntities)
+		{
+			if(entity instanceof Timestamped)
+			{
+				final Timestamped timestamped = (Timestamped) entity;
+				final Timestamped reference = (Timestamped) controller.getEntityById(TypeManager.getClass(entity), entity.getId());
+				if(!reference.getTimestamp().equals(timestamped.getTimestamp()))
+					throw new RoseException("Entity is out of synchronization: " + EntityUtils.toStringSimple(entity));
+			}
+		}
+		controller.update( checkedEntities.toArray(new Writable[checkedEntities.size()]));
+		if(entities.length != checkedEntities.size())
+			throw new RoseException("Trying to update null entity.");
+	}
+	
+	@Override
+	public void delete(final Writable entity) throws RoseException
 	{
 		if(entity == null)
 			return;
@@ -46,7 +78,5 @@ public class ConsistencyController extends AbstractControllerDecorator implement
 		}
 		super.delete(entity);
 	}
-	
-	// TODO: other (manual) consistency checks
 	
 }

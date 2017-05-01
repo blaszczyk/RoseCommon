@@ -3,6 +3,7 @@ package bn.blaszczyk.rosecommon.dto;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -16,14 +17,19 @@ import com.google.gson.Gson;
 import com.google.gson.internal.StringMap;
 
 import bn.blaszczyk.rose.model.Readable;
+import bn.blaszczyk.rose.model.Timestamped;
 import bn.blaszczyk.rosecommon.RoseException;
 import bn.blaszczyk.rosecommon.tools.TypeManager;
 
 public class RoseDto extends LinkedHashMap<String, String>{
 	
+	private static final String ID_KEY = "id";
+	private static final String TYPE_KEY = "type";
+	private static final String TIMESTAMP_KEY = "timestamp";
+
 	private static final long serialVersionUID = 7851913867785528671L;
 	
-	public static final DateFormat DATE_FORMAT = DateFormat.getDateInstance();
+	public static final DateFormat DATE_FORMAT = new SimpleDateFormat("dd.MM.yyyy");
 	public static final DecimalFormat BIG_DEC_FORMAT = (DecimalFormat) NumberFormat.getNumberInstance();
 	static{
 		BIG_DEC_FORMAT.setParseBigDecimal(true);
@@ -52,8 +58,11 @@ public class RoseDto extends LinkedHashMap<String, String>{
 	
 	public RoseDto(final Readable entity)
 	{
-		put("type",entity.getEntityName());
-		put("id", String.valueOf(entity.getId()));
+		put(TYPE_KEY,entity.getEntityName());
+		if(entity.getId() >= 0)
+			put(ID_KEY, String.valueOf(entity.getId()));
+		if(entity instanceof Timestamped)
+			put(TIMESTAMP_KEY, Long.toString( ((Timestamped)entity).getTimestamp().getTime() ));
 		for(int i = 0; i < entity.getFieldCount(); i++)
 		{
 			String stringValue = null;
@@ -85,12 +94,23 @@ public class RoseDto extends LinkedHashMap<String, String>{
 
 	public int getId()
 	{
-		return Integer.parseInt(get("id"));
+		return Integer.parseInt(get(ID_KEY));
 	}
 	
 	public Class<? extends Readable> getType()
 	{
-		return TypeManager.getClass(get("type"));
+		return TypeManager.getClass(get(TYPE_KEY));
+	}
+	
+	public boolean hasTimestamp()
+	{
+		return containsKey(TIMESTAMP_KEY);
+	}
+	
+	public Date getTimestamp()
+	{
+		final long timestamp = Long.parseLong(get(TIMESTAMP_KEY));
+		return new Date(timestamp);
 	}
 	
 	public String getFieldValue(final int index)
@@ -130,16 +150,22 @@ public class RoseDto extends LinkedHashMap<String, String>{
 	
 	private void checkEntry(final String key, final String value) throws RoseException
 	{
-		if(key.equals("id"))
+		if(key.equals(ID_KEY))
 		{
 			if(! ID_PATTERN.matcher(String.valueOf(value)).matches())
-				throw new RoseException("");
+				throw new RoseException("not matching an id value: '" + value + "'");
 			return;
 		}
-		else if(key.equals("type"))
+		else if(key.equals(TYPE_KEY))
 		{
 			if( TypeManager.getClass(value) == null)
 				throw new RoseException("unknown type '" + value + "'");
+			return;
+		}
+		else if(key.equals(TIMESTAMP_KEY))
+		{
+			if(! ID_PATTERN.matcher(String.valueOf(value)).matches())
+				throw new RoseException("not matching an id value: '" + value + "'");
 			return;
 		}
 		else if(key.startsWith("e") || key.startsWith("f"))
