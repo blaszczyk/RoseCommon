@@ -16,7 +16,7 @@ public abstract class AbstractControllerDecorator implements ModelController {
 	}
 	
 	@Override
-	public List<? extends Readable> getEntities(final Class<? extends Readable> type) throws RoseException
+	public <T extends Readable> List<T> getEntities(final Class<T> type) throws RoseException
 	{
 		return controller.getEntities(type);
 	}
@@ -34,13 +34,13 @@ public abstract class AbstractControllerDecorator implements ModelController {
 	}
 	
 	@Override
-	public Readable getEntityById(final Class<? extends Readable> type, final int id) throws RoseException
+	public <T extends Readable> T getEntityById(final Class<T> type, final int id) throws RoseException
 	{
 		return controller.getEntityById(type, id);
 	}
 	
 	@Override
-	public List<? extends Readable> getEntitiesByIds(final Class<? extends Readable> type, final List<Integer> ids) throws RoseException
+	public <T extends Readable> List<T> getEntitiesByIds(final Class<T> type, final List<Integer> ids) throws RoseException
 	{
 		return controller.getEntitiesByIds(type, ids);
 	}

@@ -164,12 +164,12 @@ public class RoseProxy implements InvocationHandler {
 			fetched[index] = true;
 			if(field.getType().isSecondMany())
 				access.getMany(type, ids)
-						.forEach( e -> entity.addEntity(index, e, proxy));
+						.forEach( e -> entity.addEntity(index, (Writable) e, proxy));
 			else
 			{
 				final int id = ids.get(0);
 				if(id >= 0)
-					entity.setEntity(index, access.getOne(type, id), proxy);
+					entity.setEntity(index, (Writable) access.getOne(type, id), proxy);
 			}
 		}
 		catch (RoseException e) 

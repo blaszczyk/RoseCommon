@@ -9,15 +9,15 @@ import bn.blaszczyk.rosecommon.RoseException;
 public interface ModelController 
 {
 	
-	public List<? extends Readable> getEntities(final Class<? extends Readable> type) throws RoseException;
+	public <T extends Readable> List<T> getEntities(final Class<T> type) throws RoseException;
 	
 	public List<Integer> getIds(final Class<? extends Readable> type) throws RoseException;
 	
 	public int getEntityCount(Class<? extends Readable> type) throws RoseException;
 	
-	public Readable getEntityById(Class<? extends Readable> type, int id) throws RoseException;
+	public <T extends Readable> T getEntityById(Class<T> type, int id) throws RoseException;
 	
-	public List<? extends Readable> getEntitiesByIds(Class<? extends Readable> type, List<Integer> ids) throws RoseException;
+	public <T extends Readable> List<T> getEntitiesByIds(Class<T> type, List<Integer> ids) throws RoseException;
 	
 	public <T extends Readable> T createNew(Class<T> type) throws RoseException;
 	

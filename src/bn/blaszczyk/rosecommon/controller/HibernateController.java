@@ -44,7 +44,7 @@ public class HibernateController implements ModelController {
 	}
 
 	@Override
-	public List<Readable> getEntities(Class<? extends Readable> type) throws RoseException
+	public <T extends Readable> List<T> getEntities(Class<T> type) throws RoseException
 	{
 		try
 		{
@@ -65,7 +65,7 @@ public class HibernateController implements ModelController {
 				
 				List<?> list = criteria.setResultTransformer(Criteria.DISTINCT_ROOT_ENTITY).list();
 				LOGGER.debug("end load entities: " + type.getName() + " count=" + list.size());
-				return list.stream().map(Readable.class::cast).collect(Collectors.toList());
+				return list.stream().map(type::cast).collect(Collectors.toList());
 				
 			}
 		}
@@ -131,7 +131,7 @@ public class HibernateController implements ModelController {
 	}
 
 	@Override
-	public Readable getEntityById(final Class<? extends Readable> type, final int id) throws RoseException
+	public <T extends Readable> T getEntityById(final Class<T> type, final int id) throws RoseException
 	{
 		final Session session = getSession();
 		final String message = "fetching " + type.getSimpleName() + " id=" + id;
@@ -142,7 +142,7 @@ public class HibernateController implements ModelController {
 				LOGGER.debug("start " + message);
 				final Criteria criteria = session.createCriteria(type);
 				criteria.add(Restrictions.idEq(id));
-				final Readable result = (Readable) criteria.uniqueResult();
+				final T result = type.cast(criteria.uniqueResult());
 				LOGGER.debug("end " + message);
 				return result;
 			}
@@ -154,7 +154,7 @@ public class HibernateController implements ModelController {
 	}
 	
 	@Override
-	public List<? extends Readable> getEntitiesByIds(final Class<? extends Readable> type, List<Integer> ids)
+	public <T extends Readable> List<T> getEntitiesByIds(final Class<T> type, List<Integer> ids)
 			throws RoseException
 	{
 		final Session session = getSession();
@@ -167,7 +167,7 @@ public class HibernateController implements ModelController {
 				final Criteria criteria = session.createCriteria(type);
 				criteria.add(Restrictions.in("id", ids));
 				final List<?> list = criteria.list();
-				final List<Readable> entities = list.stream().map(Readable.class::cast).collect(Collectors.toList());
+				final List<T> entities = list.stream().map(type::cast).collect(Collectors.toList());
 				LOGGER.debug("start " + message);
 				return entities;
 			}

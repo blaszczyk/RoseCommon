@@ -29,18 +29,21 @@ public class CacheController extends AbstractControllerDecorator implements Mode
 	}
 	
 	@Override
-	public List<? extends Readable> getEntities(final Class<? extends Readable> type) throws RoseException
+	public <T extends Readable> List<T> getEntities(final Class<T> type) throws RoseException
 	{
 		if(!fetchedTypes.contains(type))
 		{
-			final List<? extends Readable> fetchedEntities = controller.getEntities(type);
+			final List<T> fetchedEntities = controller.getEntities(type);
 			if(fetchedEntities instanceof LazyList)
 				return fetchedEntities;
 			cacheMany(fetchedEntities, type);
 			fetchedTypes.add(type);
 		}
-		final Collection<Readable> entities = allEntities.get(type).values();
-		return Collections.unmodifiableList(new ArrayList<Readable>(entities));
+		return allEntities.get(type)
+				.values()
+				.stream()
+				.map(type::cast)
+				.collect(Collectors.toList());
 	}
 	
 	@Override
@@ -65,15 +68,15 @@ public class CacheController extends AbstractControllerDecorator implements Mode
 	}
 
 	@Override
-	public Readable getEntityById(Class<? extends Readable> type, int id) throws RoseException
+	public <T extends Readable> T getEntityById(Class<T> type, int id) throws RoseException
 	{
 		if(!hasEntity(type, id))
 			cacheOne(controller.getEntityById(type, id));
-		return allEntities.get(type).get(id);
+		return type.cast(allEntities.get(type).get(id));
 	}
 	
 	@Override
-	public List<? extends Readable> getEntitiesByIds(Class<? extends Readable> type, List<Integer> ids)
+	public <T extends Readable> List<T> getEntitiesByIds(Class<T> type, List<Integer> ids)
 			throws RoseException
 	{
 		return getMany(type, ids);
@@ -148,13 +151,13 @@ public class CacheController extends AbstractControllerDecorator implements Mode
 	}
 
 	@Override
-	public Writable getOne(final Class<? extends Readable> type, final int id) throws RoseException
+	public <T extends Readable> T getOne(final Class<T> type, final int id) throws RoseException
 	{
-		return (Writable) getEntityById(type, id);
+		return getEntityById(type, id);
 	}
 
 	@Override
-	public List<? extends Writable> getMany(final Class<? extends Readable> type, final List<Integer> ids) throws RoseException
+	public <T extends Readable> List<T> getMany(final Class<T> type, final List<Integer> ids) throws RoseException
 	{
 		final Map<Integer,Readable> entities = allEntities.get(type);
 		final List<Integer> missingIds = ids.stream()
@@ -164,7 +167,7 @@ public class CacheController extends AbstractControllerDecorator implements Mode
 		cacheMany(fetchedEntities, type);
 		return ids.stream()
 					.map(id -> entities.get(id))
-					.map(Writable.class::cast)
+					.map(type::cast)
 					.collect(Collectors.toList());
 	}
 

@@ -36,17 +36,17 @@ public class RestController implements ModelController, EntityAccess {
 	}
 	
 	@Override
-	public List<? extends Readable> getEntities(final Class<? extends Readable> type) throws RoseException
+	public <T extends Readable> List<T> getEntities(final Class<T> type) throws RoseException
 	{
 		if(usingLazyList)
 		{
 			final List<Integer> ids = client.getIds(type.getSimpleName().toLowerCase());
-			return new LazyList(type, ids, access);
+			return new LazyList<T>(type, ids, access);
 		}
 		else
 		{
 			final List<RoseDto> dtos = client.getDtos(type.getSimpleName());
-			return createProxys(dtos);
+			return createProxys(dtos,type);
 		}
 	}
 	
@@ -63,16 +63,16 @@ public class RestController implements ModelController, EntityAccess {
 	}
 	
 	@Override
-	public Readable getEntityById(final Class<? extends Readable> type, final int id) throws RoseException
+	public <T extends Readable> T getEntityById(final Class<T> type, final int id) throws RoseException
 	{
 		return getOne(type, id);
 	}
 	
 	@Override
-	public List<? extends Readable> getEntitiesByIds(final Class<? extends Readable> type, final List<Integer> ids) throws RoseException
+	public <T extends Readable> List<T> getEntitiesByIds(final Class<T> type, final List<Integer> ids) throws RoseException
 	{
 		if(usingLazyList)
-			return new LazyList(type, ids, access);
+			return new LazyList<T>(type, ids, access);
 		else
 			return getMany(type, ids);
 	}
@@ -117,24 +117,24 @@ public class RestController implements ModelController, EntityAccess {
 	}
 
 	@Override
-	public Writable getOne(final Class<? extends Readable> type, final int id) throws RoseException
+	public <T extends Readable> T getOne(final Class<T> type, final int id) throws RoseException
 	{
 		final RoseDto dto = client.getDto(type.getSimpleName().toLowerCase(), id);
-		return RoseProxy.create(dto, access);
+		return type.cast(RoseProxy.create(dto, access));
 	}
 
 	@Override
-	public List<Writable> getMany(Class<? extends Readable> type, final List<Integer> ids) throws RoseException
+	public <T extends Readable> List<T> getMany(Class<T> type, final List<Integer> ids) throws RoseException
 	{
 		final List<RoseDto> dtos = client.getDtos(type.getSimpleName().toLowerCase(), ids);
-		return createProxys(dtos);
+		return createProxys(dtos,type);
 	}
 
-	private List<Writable> createProxys(final List<RoseDto> dtos) throws RoseException
+	private <T extends Readable> List<T> createProxys(final List<RoseDto> dtos, final Class<T> type) throws RoseException
 	{
-		final List<Writable> entities = new ArrayList<>(dtos.size());
+		final List<T> entities = new ArrayList<>(dtos.size());
 		for(final RoseDto dto : dtos)
-			entities.add(RoseProxy.create(dto, access));
+			entities.add(type.cast(RoseProxy.create(dto, access)));
 		return entities;
 	}
 	

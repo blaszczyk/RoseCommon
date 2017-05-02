@@ -8,22 +8,20 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.NoSuchElementException;
 import java.util.Spliterator;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.log4j.Logger;
 
 import bn.blaszczyk.rose.model.Readable;
-import bn.blaszczyk.rose.model.Writable;
 import bn.blaszczyk.rosecommon.RoseException;
 
-public class LazyList implements List<Writable> 
+public class LazyList<T extends Readable> implements List<T> 
 {
 	private final Logger LOGGER = Logger.getLogger(LazyList.class);
 	
-	private List<Writable> list;
+	private List<T> list;
 	
-	private final Class<? extends Readable> type;
+	private final Class<T> type;
 	private final List<Integer> ids;
 	private final EntityAccess access;
 	
@@ -31,7 +29,7 @@ public class LazyList implements List<Writable>
 	
 	private boolean allFetched = false;
 
-	public LazyList(final Class<? extends Readable> type, final List<Integer> ids, final EntityAccess access, final boolean providingLazyIterator)
+	public LazyList(final Class<T> type, final List<Integer> ids, final EntityAccess access, final boolean providingLazyIterator)
 	{
 		list = new ArrayList<>(Collections.nCopies(ids.size(), null));
 		this.type = type;
@@ -40,7 +38,7 @@ public class LazyList implements List<Writable>
 		this.providingLazyIterator = providingLazyIterator;
 	}
 
-	public LazyList(final Class<? extends Readable> type, final List<Integer> ids, final EntityAccess access)
+	public LazyList(final Class<T> type, final List<Integer> ids, final EntityAccess access)
 	{
 		this(type, ids, access, false);
 	}
@@ -51,10 +49,7 @@ public class LazyList implements List<Writable>
 			return;
 		try
 		{
-			list = access.getMany(type, ids)
-						.stream()
-						.map(Writable.class::cast)
-						.collect(Collectors.toList());
+			list = access.getMany(type, ids);
 			allFetched = true;
 		}
 		catch (RoseException e)
@@ -73,7 +68,7 @@ public class LazyList implements List<Writable>
 		ids.set(index, null);
 		try
 		{
-			final Writable entity = access.getOne(type, id);
+			final T entity = access.getOne(type, id);
 			list.set(index, entity);
 		}
 		catch (RoseException e) 
@@ -83,14 +78,14 @@ public class LazyList implements List<Writable>
 	}
 
 	@Override
-	public Stream<Writable> stream()
+	public Stream<T> stream()
 	{
 		fetchAll();
 		return list.stream();
 	}
 
 	@Override
-	public Stream<Writable> parallelStream()
+	public Stream<T> parallelStream()
 	{
 		fetchAll();
 		return list.parallelStream();
@@ -99,9 +94,9 @@ public class LazyList implements List<Writable>
 	@Override
 	public boolean contains(Object o)
 	{
-		if(o instanceof Writable)
+		if(type.isInstance(o))
 		{
-			int id = ((Writable)o).getId();
+			int id = ((Readable)o).getId();
 			return ids.contains(id);
 		}
 		return false;
@@ -110,9 +105,9 @@ public class LazyList implements List<Writable>
 	@Override
 	public int indexOf(Object o)
 	{
-		if(o instanceof Writable)
+		if(type.isInstance(o))
 		{
-			int id = ((Writable)o).getId();
+			int id = ((Readable)o).getId();
 			return ids.indexOf(id);
 		}
 		return -1;
@@ -121,9 +116,9 @@ public class LazyList implements List<Writable>
 	@Override
 	public int lastIndexOf(Object o)
 	{
-		if(o instanceof Writable)
+		if(type.isInstance(o))
 		{
-			int id = ((Writable)o).getId();
+			int id = ((Readable)o).getId();
 			return ids.lastIndexOf(id);
 		}
 		return -1;
@@ -137,35 +132,35 @@ public class LazyList implements List<Writable>
 	}
 
 	@Override
-	public <T> T[] toArray(T[] a)
+	public <U> U[] toArray(U[] a)
 	{
 		fetchAll();
 		return list.toArray(a);
 	}
 
 	@Override
-	public Writable get(int index)
+	public T get(int index)
 	{
 		fetch(index);
 		return list.get(index);
 	}
 
 	@Override
-	public ListIterator<Writable> listIterator(int index)
+	public ListIterator<T> listIterator(int index)
 	{
 		fetchAll();
 		return list.listIterator(index);
 	}
 
 	@Override
-	public ListIterator<Writable> listIterator()
+	public ListIterator<T> listIterator()
 	{
 		fetchAll();
 		return list.listIterator();
 	}
 
 	@Override
-	public Iterator<Writable> iterator()
+	public Iterator<T> iterator()
 	{
 		if(allFetched || !providingLazyIterator)
 			return list.iterator();
@@ -173,13 +168,13 @@ public class LazyList implements List<Writable>
 	}
 
 	@Override
-	public List<Writable> subList(int fromIndex, int toIndex)
+	public List<T> subList(int fromIndex, int toIndex)
 	{
-		return new LazyList(type, ids.subList(fromIndex, toIndex), access);
+		return new LazyList<T>(type, ids.subList(fromIndex, toIndex), access);
 	}
 
 	@Override
-	public Spliterator<Writable> spliterator()
+	public Spliterator<T> spliterator()
 	{
 		fetchAll();
 		return list.spliterator();
@@ -210,7 +205,7 @@ public class LazyList implements List<Writable>
 	}
 
 	@Override
-	public boolean add(Writable e)
+	public boolean add(T e)
 	{
 		ids.add(null);
 		return list.add(e);
@@ -227,14 +222,14 @@ public class LazyList implements List<Writable>
 	}
 
 	@Override
-	public boolean addAll(Collection<? extends Writable> c)
+	public boolean addAll(Collection<? extends T> c)
 	{
 		ids.addAll(Collections.nCopies(c.size(), null));
 		return list.addAll(c);
 	}
 
 	@Override
-	public boolean addAll(int index, Collection<? extends Writable> c)
+	public boolean addAll(int index, Collection<? extends T> c)
 	{
 		ids.addAll(Collections.nCopies(c.size(), null));
 		return list.addAll(index, c);
@@ -261,27 +256,27 @@ public class LazyList implements List<Writable>
 	}
 
 	@Override
-	public Writable set(int index, Writable element)
+	public T set(int index, T element)
 	{
 		ids.set(index, null);
 		return list.set(index, element);
 	}
 
 	@Override
-	public void add(int index, Writable element)
+	public void add(int index, T element)
 	{
 		ids.add(index, null);
 		list.add(index,element);
 	}
 
 	@Override
-	public Writable remove(int index)
+	public T remove(int index)
 	{
 		ids.remove(index);
 		return list.remove(index);
 	}
 	
-	private class LazyIterator implements Iterator<Writable>
+	private class LazyIterator implements Iterator<T>
 	{
 		int cursor = 0;
 
@@ -292,12 +287,12 @@ public class LazyList implements List<Writable>
 		}
 
 		@Override
-		public Writable next()
+		public T next()
 		{
 			if(cursor >= list.size() )
 				throw new NoSuchElementException();
 			fetch(cursor);
-			final Writable entity = list.get(cursor);
+			final T entity = list.get(cursor);
 			cursor++;
 			return entity;
 		}

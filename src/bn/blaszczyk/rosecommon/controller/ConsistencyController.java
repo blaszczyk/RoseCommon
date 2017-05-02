@@ -21,7 +21,7 @@ public class ConsistencyController extends AbstractControllerDecorator implement
 	}
 	
 	@Override
-	public Readable getEntityById(Class<? extends Readable> type, int id) throws RoseException
+	public <T extends Readable> T getEntityById(Class<T> type, int id) throws RoseException
 	{
 		if(id < 0)
 			throw new RoseException("Malicious id: " + id);
@@ -29,7 +29,7 @@ public class ConsistencyController extends AbstractControllerDecorator implement
 	}
 	
 	@Override
-	public List<? extends Readable> getEntitiesByIds(final Class<? extends Readable> type, final List<Integer> ids)
+	public <T extends Readable> List<T> getEntitiesByIds(final Class<T> type, final List<Integer> ids)
 			throws RoseException
 	{
 		if(ids.stream().anyMatch(id -> id < 0))
