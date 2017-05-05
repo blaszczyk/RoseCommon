@@ -23,6 +23,7 @@ import bn.blaszczyk.rosecommon.tools.EntityUtils;
 import bn.blaszczyk.rosecommon.tools.TypeManager;
 
 import static bn.blaszczyk.rosecommon.tools.Preferences.*;
+import static bn.blaszczyk.rosecommon.tools.CommonPreference.*;
 
 public class HibernateController implements ModelController {
 	
@@ -54,7 +55,7 @@ public class HibernateController implements ModelController {
 			{
 				Criteria criteria = session.createCriteria(type);
 
-				int fetchTimeSpan = getIntegerValue(FETCH_TIMESPAN, Integer.MAX_VALUE);
+				int fetchTimeSpan = getIntegerValue(FETCH_TIMESPAN);
 				if(fetchTimeSpan != Integer.MAX_VALUE)
 				{
 					calendar.setTime(new Date());
@@ -87,7 +88,7 @@ public class HibernateController implements ModelController {
 				LOGGER.debug("start " + message);
 				final Criteria criteria = session.createCriteria(type);
 				criteria.setProjection(Projections.property("id"));
-				final int fetchTimeSpan = getIntegerValue(FETCH_TIMESPAN, Integer.MAX_VALUE);
+				final int fetchTimeSpan = getIntegerValue(FETCH_TIMESPAN);
 				if(fetchTimeSpan != Integer.MAX_VALUE)
 				{
 					calendar.setTime(new Date());
@@ -357,11 +358,11 @@ public class HibernateController implements ModelController {
 
 	private void configureDataBase()
 	{
-		String dburl = getStringValue(DB_HOST,null);
-		String dbport = getStringValue(DB_PORT,null);
-		String dbname = getStringValue(DB_NAME,null);
-		String dbuser = getStringValue(DB_USER,null);
-		String dbpassword = getStringValue(DB_PASSWORD,null);
+		String dburl = getStringValue(DB_HOST);
+		String dbport = getStringValue(DB_PORT);
+		String dbname = getStringValue(DB_NAME);
+		String dbuser = getStringValue(DB_USER);
+		String dbpassword = getStringValue(DB_PASSWORD);
 
 		Configuration configuration = new AnnotationConfiguration().configure();
 		if(dburl != null && dbport != null && dbname != null)

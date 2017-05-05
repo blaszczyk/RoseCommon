@@ -37,7 +37,6 @@ public class TypeManager {
 		try
 		{
 			mainClass = Class.forName(parser.getMainClassAsString());
-			Preferences.setMainClass( mainClass );
 			LOGGER.info( "load main class " + mainClass.getName());
 		}
 		catch (ClassNotFoundException e1)

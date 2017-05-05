@@ -1,18 +1,15 @@
 package bn.blaszczyk.rosecommon.tools;
 
-import java.io.File;
 import java.math.BigDecimal;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.text.ParseException;
 
-import org.apache.log4j.Appender;
-import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.apache.log4j.RollingFileAppender;
 
 import bn.blaszczyk.rose.model.Entity;
 import bn.blaszczyk.rose.model.Readable;
+import bn.blaszczyk.rosecommon.tools.Preference.Type;
 
 public class Preferences {
 	
@@ -23,26 +20,6 @@ public class Preferences {
 		DECIMAL_FORMAT.setParseBigDecimal(true);
 	}
 
-	public final static String COLUMN_WIDTH = "columnwidth";
-	public final static String COLUMN_CONTENT = "columncontent";
-	public final static String COLUMN_COUNT = "columncount";
-	
-	public final static String START_BUTTON = "startbutton";
-	public final static String START_BUTTON_COUNT = "startbuttoncount";
-
-	public final static String DB_HOST = "dbhost";
-	public final static String DB_PORT = "dbport";
-	public final static String DB_NAME = "dbname";
-	public final static String DB_USER = "dbuser";
-	public final static String DB_PASSWORD = "dbpassword";
-
-	public static final String FIELD_TYPE = "fieldtype";
-	
-	public static final String BASE_DIRECTORY = "basefolder";
-	public static final String LOG_LEVEL = "loglevel";
-	public static final String FETCH_ON_START = "fetchonstart";
-	public static final String FETCH_TIMESPAN = "fetchtimespan";
-
 	private static java.util.prefs.Preferences preferences;
 	
 	private Preferences()
@@ -52,50 +29,62 @@ public class Preferences {
 	public static void setMainClass(Class<?> type)
 	{
 		preferences = java.util.prefs.Preferences.userNodeForPackage(type);
-		configureLogger();
+	}
+	
+	public static void putValue(final Preference preference, final Object value)
+	{
+		if(preference.getType().getType() .equals(Type.STRING))
+			putStringValue(preference,(String)value);
+		else if(preference.getType().equals(Type.INT))
+			putIntegerValue(preference, (Integer)value);
+		else if(preference.getType().equals(Type.BOOLEAN))
+			putBooleanValue(preference, (Boolean)value);
+		else if(preference.getType().equals(Type.NUMERIC))
+			putBigDecimalValue(preference, (BigDecimal)value);
 	}
 
-	public static String getStringValue(String key, String def)
+	public static String getStringValue( final Preference key )
 	{
-		String value = preferences.get(key, def);
+		String value = preferences.get(key.getKey(), (String) key.getDefaultValue() );
 		logGet(key, value);
 		return value;
 	}
 	
-	public static void putStringValue( String key, String value)
+	public static void putStringValue( final Preference key, final String value)
 	{
-		preferences.put(key, value);
+		preferences.put(key.getKey(), value);
 	}
 
-	public static boolean getBooleanValue(String key, boolean def)
+	public static boolean getBooleanValue( final Preference key )
 	{
-		boolean value = preferences.getBoolean(key, def);
+		boolean value = preferences.getBoolean(key.getKey(), (Boolean) key.getDefaultValue() );
 		logGet(key, value);
 		return value;
 	}
 	
-	public static void putBooleanValue( String key, boolean value)
+	public static void putBooleanValue( final Preference key, final boolean value)
 	{
 		logPut(key, value);
-		preferences.putBoolean(key, value);
+		preferences.putBoolean(key.getKey(), value);
 	}
 
-	public static int getIntegerValue(String key, int def)
+	public static int getIntegerValue( final Preference key )
 	{
-		int value = preferences.getInt(key, def);
+		int value = preferences.getInt(key.getKey(), (Integer) key.getDefaultValue());
 		logGet(key, value);
 		return value;
 	}
 	
-	public static void putIntegerValue( String key, int value)
+	public static void putIntegerValue( final Preference key, final int value)
 	{
 		logPut(key, value);
-		preferences.putInt(key, value);
+		preferences.putInt(key.getKey(), value);
 	}
 
-	public static BigDecimal getBigDecimalValue(String key, BigDecimal def)
+	public static BigDecimal getBigDecimalValue( final Preference key )
 	{
-		String stringValue = preferences.get(key, DECIMAL_FORMAT.format(def));
+		final BigDecimal defaultValue = (BigDecimal) key.getDefaultValue();
+		String stringValue = preferences.get(key.getKey(), DECIMAL_FORMAT.format(defaultValue) );
 		try
 		{
 			BigDecimal value = (BigDecimal) DECIMAL_FORMAT.parse( stringValue );
@@ -105,141 +94,131 @@ public class Preferences {
 		catch (ParseException e)
 		{
 			LOGGER.error("Unable to parse BigDecimal from \"" + stringValue , e);
-			return def;
+			return defaultValue;
 		}
 	}
 	
-	public static void putBigDecimalValue( String key, BigDecimal value)
+	public static void putBigDecimalValue( final Preference key, final BigDecimal value)
 	{
 		logPut(key, value);
-		preferences.put(key, DECIMAL_FORMAT.format(value));
+		preferences.put(key.getKey(), DECIMAL_FORMAT.format(value));
 	}
 	
-	public static String getStringEntityValue(Class<? extends Readable> type, String key, String def)
+	public static String getStringEntityValue(Class<? extends Readable> type, final Preference key )
 	{
-		String value = getEntityNode(type).get(key, def);
+		String value = getEntityNode(type).get(key.getKey(), (String) key.getDefaultValue());
 		logGet(type.getName() + "." + key, value);
 		return value;
 	}
 
-	public static String getStringEntityValue(Readable entity, String key, String def)
+	public static String getStringEntityValue(Readable entity, final Preference key )
 	{
-		return getStringEntityValue(entity.getClass(), key, def);
+		return getStringEntityValue(entity.getClass(), key );
 	}
 	
-	public static String getStringEntityValue(Entity entity, String key, String def)
+	public static String getStringEntityValue(Entity entity, final Preference key )
 	{
-		return getStringEntityValue(TypeManager.getClass(entity), key, def);
+		return getStringEntityValue(TypeManager.getClass(entity), key );
 	}
 	
-	public static void putStringEntityValue(Class<? extends Readable> type, String key, String value)
+	public static void putStringEntityValue(Class<? extends Readable> type, final Preference key, final String value)
 	{
 		logPut(type.getName() + "." + key, value);
-		getEntityNode(type).put(key, value);
+		getEntityNode(type).put(key.getKey(), value);
 	}
 	
-	public static void putStringEntityValue(Readable entity, String key, String value)
+	public static void putStringEntityValue(Readable entity, final Preference key, final String value)
 	{
 		putStringEntityValue(entity.getClass(), key, value);
 	}
 	
-	public static void putStringEntityValue(Entity entity, String key, String value)
+	public static void putStringEntityValue(Entity entity, final Preference key, final String value)
 	{
 		putStringEntityValue(TypeManager.getClass(entity), key, value);
 	}
 	
-	public static boolean getBooleanEntityValue(Class<? extends Readable> type, String key, boolean def)
+	public static boolean getBooleanEntityValue(Class<? extends Readable> type, final Preference key )
 	{
-		boolean value = getEntityNode(type).getBoolean(key, def);
+		boolean value = getEntityNode(type).getBoolean(key.getKey(), (Boolean) key.getDefaultValue());
 		logGet(type.getName() + "." + key, value);
 		return value;
 	}
 	
-	public static boolean getBooleanEntityValue(Readable entity, String key, boolean def)
+	public static boolean getBooleanEntityValue(Readable entity, final Preference key )
 	{
-		return getBooleanEntityValue(entity.getClass(), key, def);
+		return getBooleanEntityValue(entity.getClass(), key );
 	}
 	
-	public static boolean getBooleanEntityValue(Entity entity, String key, boolean def)
+	public static boolean getBooleanEntityValue(Entity entity, final Preference key )
 	{
-		return getBooleanEntityValue(TypeManager.getClass(entity), key, def);
+		return getBooleanEntityValue(TypeManager.getClass(entity), key );
 	}
 	
-	public static void putBooleanEntityValue(Class<? extends Readable> type, String key, boolean value)
+	public static void putBooleanEntityValue(Class<? extends Readable> type, final Preference key, final boolean value)
 	{
 		logPut(type.getName() + "." + key, value);
-		getEntityNode(type).putBoolean(key, value);
+		getEntityNode(type).putBoolean(key.getKey(), value);
 	}
 	
-	public static void putBooleanEntityValue(Readable entity, String key, boolean value)
+	public static void putBooleanEntityValue(Readable entity, final Preference key, final boolean value)
 	{
 		putBooleanEntityValue(entity.getClass(), key, value);
 	}
 	
-	public static void putBooleanEntityValue(Entity entity, String key, boolean value)
+	public static void putBooleanEntityValue(Entity entity, final Preference key, final boolean value)
 	{
 		putBooleanEntityValue(TypeManager.getClass(entity), key, value);
 	}
 	
-	public static int getIntegerEntityValue(Class<? extends Readable> type, String key, int def)
+	public static int getIntegerEntityValue(Class<? extends Readable> type, final Preference key )
 	{
-		int value = getEntityNode(type).getInt(key, def);
+		int value = getEntityNode(type).getInt(key.getKey(), (Integer) key.getDefaultValue());
 		logGet(type.getName() + "." + key, value);
 		return value;
 	}
 	
-	public static int getIntegerEntityValue(Readable entity, String key, int def)
+	public static int getIntegerEntityValue(Readable entity, final Preference key )
 	{
-		return getIntegerEntityValue(entity.getClass(), key, def);
+		return getIntegerEntityValue(entity.getClass(), key);
 	}
 	
-	public static int getIntegerEntityValue(Entity entity, String key, int def)
+	public static int getIntegerEntityValue(Entity entity, final Preference key )
 	{
-		return getIntegerEntityValue(TypeManager.getClass(entity), key, def);
+		return getIntegerEntityValue(TypeManager.getClass(entity), key);
 	}
 	
-	public static void putIntegerEntityValue(Class<? extends Readable> type, String key, int value)
+	public static void putIntegerEntityValue(Class<? extends Readable> type, final Preference key, final int value)
 	{
 		logPut(type.getName() + "." + key, value);
-		getEntityNode(type).putInt(key, value);
+		getEntityNode(type).putInt(key.getKey(), value);
 	}
 	
-	public static void putIntegerEntityValue(Readable entity, String key, int value)
+	public static void putIntegerEntityValue(Readable entity, final Preference key, final int value)
 	{
 		putIntegerEntityValue(entity.getClass(), key, value);
 	}
 	
-	public static void putIntegerEntityValue(Entity entity, String key, int value)
+	public static void putIntegerEntityValue(Entity entity, final Preference key, final int value)
 	{
 		putIntegerEntityValue(TypeManager.getClass(entity), key, value);
 	}
 
-	public static void configureLogger()
+	private static void logGet( final Preference key, final Object value)
 	{
-		String baseDirectory = getStringValue(BASE_DIRECTORY, "C:");
-		String loglevelName = getStringValue(LOG_LEVEL, "INFO");
-		Level loglevel = Level.toLevel(loglevelName);
-		Logger logger = Logger.getRootLogger();
-		logger.setLevel(loglevel);
-		Appender appender = logger.getAppender("rolling-file");
-		if(appender instanceof RollingFileAppender)
-		{
-			RollingFileAppender rfAppender = (RollingFileAppender) appender;
-			String fullLoggerPath = baseDirectory + "/" + rfAppender.getFile();
-			File file = new File(fullLoggerPath);
-			if(!file.getParentFile().exists())
-				file.getParentFile().mkdirs();
-			rfAppender.setFile(fullLoggerPath);
-			LOGGER.info("log file: " + fullLoggerPath);
-		}
+		logGet(key.getKey(), value);
+	}
+	
+	private static void logPut( final Preference key, final Object value)
+	{
+		logPut(key.getKey(), value);
 	}
 
-	private static void logGet(String key, Object value)
+	private static void logGet( final String key, final Object value)
 	{
 		LOGGER.debug("loading preference " + key + "=" + value);
 	}
 	
-	private static void logPut(String key, Object value)
+	private static void logPut( final String key, final Object value)
 	{
 		LOGGER.debug("writing preference " + key + "=" + value);
 	}

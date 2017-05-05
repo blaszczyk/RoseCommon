@@ -36,7 +36,7 @@ public class RoseDto extends LinkedHashMap<String, String>{
 	}
 
 	private static final Gson GSON = new Gson();	
-	private static final Pattern ID_PATTERN = Pattern.compile("^[0-9]*$");
+	private static final Pattern ID_PATTERN = Pattern.compile("^\\-?[0-9]*$");
 	
 	public RoseDto(final StringMap<?> stringMap) throws RoseException
 	{
