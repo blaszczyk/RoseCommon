@@ -13,9 +13,9 @@ import bn.blaszczyk.rosecommon.RoseException;
 import bn.blaszczyk.rosecommon.tools.EntityUtils;
 import bn.blaszczyk.rosecommon.tools.TypeManager;
 
-public class ConsistencyController extends AbstractControllerDecorator implements ModelController {
+public class ConsistencyDecorator extends AbstractControllerDecorator implements ModelController {
 	
-	public ConsistencyController(final ModelController controller)
+	public ConsistencyDecorator(final ModelController controller)
 	{
 		super(controller);
 	}

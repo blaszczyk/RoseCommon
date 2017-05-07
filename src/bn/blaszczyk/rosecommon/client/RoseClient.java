@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.apache.cxf.jaxrs.client.WebClient;
@@ -16,7 +15,6 @@ import com.google.gson.Gson;
 import com.google.gson.internal.StringMap;
 
 import bn.blaszczyk.rosecommon.RoseException;
-import bn.blaszczyk.rosecommon.dto.PreferenceDto;
 import bn.blaszczyk.rosecommon.dto.RoseDto;
 
 public class RoseClient {
@@ -31,23 +29,22 @@ public class RoseClient {
 
 	public RoseClient(final String url)
 	{
-		webClient = WebClient.create(url);
+		webClient = WebClient.create(url + "/entity/");
 	}
 	
 	public RoseDto getDto(final String typeName, final int id) throws RoseException
 	{
 		final List<RoseDto> dtos = getDtos(typeName + "/" + id);
 		if(dtos.size() != 1)
-			throw new RoseException("error on GET@/" + typeName + "/" + id + "; found:" + dtos);
+			throw new RoseException("error on GET@/entity/" + typeName + "/" + id + "; found:" + dtos);
 		return dtos.get(0);
 	}
 	
-	public List<RoseDto> getDtos(final String subPath) throws RoseException
+	public List<RoseDto> getDtos(final String path) throws RoseException
 	{
-		final String path = "/entity/" + subPath;
 		try
 		{
-			LOGGER.debug("requesting GET@" + path);
+			LOGGER.debug("requesting GET@/entity/" + path);
 			webClient.replacePath(path.toLowerCase());
 			webClient.resetQuery();
 			final List<RoseDto> dtos = new ArrayList<>();
@@ -61,16 +58,16 @@ public class RoseClient {
 		}
 		catch (Exception e) 
 		{
-			throw RoseException.wrap(e, "Error on GET@" + path);
+			throw RoseException.wrap(e, "Error on GET@/entity/" + path);
 		}
 	}
 
 	public List<Integer> getIds(final String typeName) throws RoseException
 	{
-		final String path = "/entity/" + typeName + "/id";
+		final String path = typeName + "/id";
 		try
 		{
-			LOGGER.debug("requesting GET@" + path);
+			LOGGER.debug("requesting GET@/entity/" + path);
 			webClient.replacePath(path);
 			webClient.resetQuery();
 			final String encodedResponse = webClient.get(String.class);
@@ -84,7 +81,7 @@ public class RoseClient {
 		}
 		catch (Exception e) 
 		{
-			throw RoseException.wrap(e, "Error on GET@" + path);
+			throw RoseException.wrap(e, "Error on GET@/entity/" + path);
 		}
 	}
 
@@ -97,7 +94,7 @@ public class RoseClient {
 
 	public int getCount(final String typeName) throws RoseException
 	{
-		final String path = "/entity/" + typeName + "/count";
+		final String path = typeName + "/count";
 		try
 		{
 			LOGGER.debug("requesting GET@/entity/" + typeName + "/count");
@@ -110,7 +107,7 @@ public class RoseClient {
 		}
 		catch (Exception e) 
 		{
-			throw RoseException.wrap(e, "Errpr on GET@" + path);
+			throw RoseException.wrap(e, "Errpr on GET@/entity/" + path);
 		}
 	}
 
@@ -119,7 +116,7 @@ public class RoseClient {
 		final String path = pathForType(dto);
 		try
 		{
-			LOGGER.debug("requesting POST@" + path);
+			LOGGER.debug("requesting POST@/entity/" + path);
 			webClient.replacePath(path);
 			webClient.resetQuery();
 			final String request = GSON.toJson(dto);
@@ -133,7 +130,7 @@ public class RoseClient {
 		}
 		catch(Exception e)
 		{
-			throw RoseException.wrap(e, "error on POST@" + path);
+			throw RoseException.wrap(e, "error on POST@/entity/" + path);
 		}
 	}
 
@@ -142,7 +139,7 @@ public class RoseClient {
 		final String path = pathFor(dto);
 		try
 		{
-			LOGGER.debug("requesting PUT@" + path);
+			LOGGER.debug("requesting PUT@/entity/" + path);
 			webClient.replacePath(path);
 			webClient.resetQuery();
 			final String request = GSON.toJson(dto);
@@ -152,98 +149,27 @@ public class RoseClient {
 		}
 		catch (Exception e) 
 		{
-			throw RoseException.wrap(e, "error on PUT@" + path);
+			throw RoseException.wrap(e, "error on PUT@/entity/" + path);
 		}
 	}
 
 	public void deleteByID(final String typeName, final int id) throws RoseException
 	{
-		final String path = "/entity/" + typeName + "/" + id;
+		final String path = typeName + "/" + id;
 
 		try
 		{
-			LOGGER.debug("requesting DELETE@" + path);
+			LOGGER.debug("requesting DELETE@/entity/" + path);
 			webClient.replacePath(path);
 			webClient.resetQuery();
 			webClient.delete();
 		}
 		catch (Exception e) 
 		{
-			throw RoseException.wrap(e, "error on DELETE@" + path);
+			throw RoseException.wrap(e, "error on DELETE@/entity/" + path);
 		}
 	}
 
-	public PreferenceDto getPreferences() throws RoseException
-	{
-		final String path = "/server/config";
-		try
-		{
-			LOGGER.debug("requesting GET@" + path);
-			webClient.replacePath(path);
-			webClient.resetQuery();
-			final String encodedResponse = webClient.get(String.class);
-			final String response = URLDecoder.decode(encodedResponse, CODING_CHARSET);
-			final StringMap<?> stringMap = GSON.fromJson(response, StringMap.class);
-			LOGGER.debug("decoded response message:\r\n" + response);
-			return new PreferenceDto(stringMap);
-		}
-		catch (Exception e) 
-		{
-			throw RoseException.wrap(e, "Error on GET@" + path);
-		}
-	}
-
-	public void putPreferences(final PreferenceDto dto) throws RoseException
-	{
-		final String path = "/server/config";
-		try
-		{
-			LOGGER.debug("requesting PUT@" + path);
-			webClient.replacePath(path);
-			webClient.resetQuery();
-			final String request = GSON.toJson(dto);
-			LOGGER.debug("decoded request message:\r\n" + request);
-			final String encodedRequest = URLEncoder.encode(request, CODING_CHARSET);
-			webClient.put(encodedRequest);
-		}
-		catch (Exception e) 
-		{
-			throw RoseException.wrap(e, "error on PUT@" + path);
-		}
-	}
-	
-	public Map<String,String> getServerStatus() throws RoseException
-	{
-		try
-		{
-			webClient.replacePath("/server/status");
-			webClient.resetQuery();
-			final String encodedResponse = webClient.get(String.class);
-			final String response = URLDecoder.decode(encodedResponse, CODING_CHARSET);
-			final StringMap<?> status = GSON.fromJson(response, StringMap.class);
-			return status.entrySet().stream().
-				collect(Collectors.toMap(e -> e.getKey(), e -> String.valueOf(e.getValue())));
-		}
-		catch (Exception e) 
-		{
-			throw RoseException.wrap(e, "error on GET@/server/status");
-		}
-	}
-
-	public void postStopRequest()
-	{
-		webClient.replacePath("/server/stop");
-		webClient.resetQuery();
-		webClient.post("");
-	}
-
-	public void postRestartRequest()
-	{
-		webClient.replacePath("/server/restart");
-		webClient.resetQuery();
-		webClient.post("");
-	}
-	
 	public void close()
 	{
 		webClient.close();
@@ -254,14 +180,14 @@ public class RoseClient {
 		final Class<?> type = dto.getType();
 		if(type == null)
 			throw new RoseException("missing type in " + dto);
-		return "/entity/" + type.getSimpleName().toLowerCase();
+		return type.getSimpleName().toLowerCase();
 	}
 	
 	private String pathFor(final RoseDto dto) throws RoseException
 	{
 		final int id = dto.getId();
 		if(id < 0)
-			throw new RoseException("invalie id " + id);
+			throw new RoseException("invalid id " + id);
 		return pathForType(dto) + "/" + id;
 	}
 	

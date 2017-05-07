@@ -8,6 +8,11 @@ public interface Preference {
 	public String getKey();
 	public Object getDefaultValue();
 	
+	default public boolean needsCaching()
+	{
+		return false;
+	}
+	
 	default public Preference append(final Object apex)
 	{
 		return new PreferenceAppender(this, apex);

@@ -12,6 +12,8 @@ import bn.blaszczyk.rosecommon.dto.RoseDto;
 import bn.blaszczyk.rosecommon.proxy.EntityAccess;
 import bn.blaszczyk.rosecommon.proxy.LazyList;
 import bn.blaszczyk.rosecommon.proxy.RoseProxy;
+import bn.blaszczyk.rosecommon.tools.CommonPreference;
+import bn.blaszczyk.rosecommon.tools.Preferences;
 import bn.blaszczyk.rosecommon.tools.TypeManager;
 
 public class RestController implements ModelController, EntityAccess {
@@ -20,9 +22,11 @@ public class RestController implements ModelController, EntityAccess {
 	private EntityAccess access = this;
 	private boolean usingLazyList = false;
 	
-	public RestController(final RoseClient client)
+	public RestController()
 	{
-		this.client = client;
+		final String host = Preferences.getStringValue(CommonPreference.SERVICE_HOST);
+		final String port = Preferences.getStringValue(CommonPreference.SERVICE_PORT);
+		this.client = new RoseClient(String.format("http://%s:%s",host,port));
 	}
 	
 	public void setEntityAccess(final EntityAccess access)
