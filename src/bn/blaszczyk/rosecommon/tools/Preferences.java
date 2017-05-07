@@ -4,8 +4,12 @@ import java.math.BigDecimal;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.text.ParseException;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.apache.log4j.Logger;
 
@@ -34,6 +38,57 @@ public class Preferences {
 		preferences = java.util.prefs.Preferences.userNodeForPackage(type);
 	}
 	
+	public static void cacheArguments(final String[] args, final Preference[]... preferences)
+	{
+		final List<Preference> prefs = Arrays
+				.stream(preferences)
+				.flatMap(Arrays::stream)
+				.filter(Preference::needsCaching)
+				.collect(Collectors.toList());
+		boolean hasPreference = false;
+		Preference preference = null;
+		for(final String arg : args)
+		{
+			if(hasPreference)
+			{
+				final Object value = parseValue(arg, preference);
+				PREFS_CACHE.put(preference, value);
+				hasPreference = false;
+			}
+			else if(arg.startsWith("-"))
+			{
+				final String key = arg.substring(1);
+				final Optional<Preference> optPreference = prefs
+						.stream()
+						.filter(p -> key.equals(p.getKey()))
+						.findFirst();
+				if(optPreference.isPresent())
+				{
+					hasPreference = true;
+					preference = optPreference.get();
+				}
+			}
+			else
+				hasPreference = false;
+		}
+	}
+	
+	private static Object parseValue(final String value, final Preference preference)
+	{
+		switch (preference.getType())
+		{
+		case BOOLEAN:
+			return Boolean.parseBoolean(value);
+		case INT:
+			return Integer.parseInt(value);
+		case NUMERIC:
+			return parseBigDecimal(value, (BigDecimal) preference.getDefaultValue());
+		case STRING:
+			return value;
+		}
+		return preference.getDefaultValue();
+	}
+
 	public static void clearCache()
 	{
 		PREFS_CACHE.clear();
@@ -131,21 +186,13 @@ public class Preferences {
 			return (BigDecimal) PREFS_CACHE.get(preference);
 		final BigDecimal defaultValue = (BigDecimal) preference.getDefaultValue();
 		final String stringValue = preferences.get(preference.getKey(), DECIMAL_FORMAT.format(defaultValue) );
-		try
-		{
-			final BigDecimal value = (BigDecimal) DECIMAL_FORMAT.parse( stringValue );
-			logGet(preference, value);
-			if(preference.needsCaching())
-				PREFS_CACHE.put(preference, value);
-			return value;
-		}
-		catch (ParseException e)
-		{
-			LOGGER.error("Unable to parse BigDecimal from \"" + stringValue , e);
-			return defaultValue;
-		}
+		final BigDecimal value = parseBigDecimal(stringValue, defaultValue);
+		logGet(preference, value);
+		if(preference.needsCaching())
+			PREFS_CACHE.put(preference, value);
+		return value;
 	}
-	
+
 	public static void putBigDecimalValue( final Preference preference, final BigDecimal value)
 	{
 		logPut(preference, value);
@@ -251,6 +298,20 @@ public class Preferences {
 		putIntegerEntityValue(TypeManager.getClass(entity), preference, value);
 	}
 
+	private static BigDecimal parseBigDecimal(final String stringValue, final BigDecimal defaultValue)
+	{
+		try
+		{
+			final BigDecimal value = (BigDecimal) DECIMAL_FORMAT.parse( stringValue );
+			return value;
+		}
+		catch (ParseException e)
+		{
+			LOGGER.error("Unable to parse BigDecimal from \"" + stringValue , e);
+			return defaultValue;
+		}
+	}
+	
 	private static void logGet( final Preference preference, final Object value)
 	{
 		logGet(preference.getKey(), value);
