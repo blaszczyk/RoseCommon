@@ -16,6 +16,7 @@ import com.google.gson.Gson;
 import com.google.gson.internal.StringMap;
 
 import bn.blaszczyk.rosecommon.RoseException;
+import bn.blaszczyk.rosecommon.dto.PreferenceDto;
 import bn.blaszczyk.rosecommon.dto.RoseDto;
 
 public class RoseClient {
@@ -47,7 +48,7 @@ public class RoseClient {
 		try
 		{
 			LOGGER.debug("requesting GET@" + path);
-			webClient.replacePath(path);
+			webClient.replacePath(path.toLowerCase());
 			webClient.resetQuery();
 			final List<RoseDto> dtos = new ArrayList<>();
 			final String encodedResponse = webClient.get(String.class);
@@ -171,6 +172,45 @@ public class RoseClient {
 			throw RoseException.wrap(e, "error on DELETE@" + path);
 		}
 	}
+
+	public PreferenceDto getPreferences() throws RoseException
+	{
+		final String path = "/server/config";
+		try
+		{
+			LOGGER.debug("requesting GET@" + path);
+			webClient.replacePath(path);
+			webClient.resetQuery();
+			final String encodedResponse = webClient.get(String.class);
+			final String response = URLDecoder.decode(encodedResponse, CODING_CHARSET);
+			final StringMap<?> stringMap = GSON.fromJson(response, StringMap.class);
+			LOGGER.debug("decoded response message:\r\n" + response);
+			return new PreferenceDto(stringMap);
+		}
+		catch (Exception e) 
+		{
+			throw RoseException.wrap(e, "Error on GET@" + path);
+		}
+	}
+
+	public void putPreferences(final PreferenceDto dto) throws RoseException
+	{
+		final String path = "/server/config";
+		try
+		{
+			LOGGER.debug("requesting PUT@" + path);
+			webClient.replacePath(path);
+			webClient.resetQuery();
+			final String request = GSON.toJson(dto);
+			LOGGER.debug("decoded request message:\r\n" + request);
+			final String encodedRequest = URLEncoder.encode(request, CODING_CHARSET);
+			webClient.put(encodedRequest);
+		}
+		catch (Exception e) 
+		{
+			throw RoseException.wrap(e, "error on PUT@" + path);
+		}
+	}
 	
 	public Map<String,String> getServerStatus() throws RoseException
 	{
@@ -188,6 +228,20 @@ public class RoseClient {
 		{
 			throw RoseException.wrap(e, "error on GET@/server/status");
 		}
+	}
+
+	public void postStopRequest()
+	{
+		webClient.replacePath("/server/stop");
+		webClient.resetQuery();
+		webClient.post("");
+	}
+
+	public void postRestartRequest()
+	{
+		webClient.replacePath("/server/restart");
+		webClient.resetQuery();
+		webClient.post("");
 	}
 	
 	public void close()

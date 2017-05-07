@@ -9,7 +9,6 @@ import org.apache.log4j.Logger;
 
 import bn.blaszczyk.rose.model.Entity;
 import bn.blaszczyk.rose.model.Readable;
-import bn.blaszczyk.rosecommon.tools.Preference.Type;
 
 public class Preferences {
 	
@@ -31,16 +30,40 @@ public class Preferences {
 		preferences = java.util.prefs.Preferences.userNodeForPackage(type);
 	}
 	
+	public static Object getValue(final Preference preference)
+	{
+		switch (preference.getType())
+		{
+		case STRING:
+			return getStringValue(preference);
+		case INT:
+			return getIntegerValue(preference);
+		case BOOLEAN:
+			return getBooleanValue(preference);
+		case NUMERIC:
+			return getBigDecimalValue(preference);
+		default:
+			return null;
+		}
+	}
+	
 	public static void putValue(final Preference preference, final Object value)
 	{
-		if(preference.getType().getType() .equals(Type.STRING))
+		switch (preference.getType())
+		{
+		case STRING:
 			putStringValue(preference,(String)value);
-		else if(preference.getType().equals(Type.INT))
+			break;
+		case INT:
 			putIntegerValue(preference, (Integer)value);
-		else if(preference.getType().equals(Type.BOOLEAN))
+			break;
+		case BOOLEAN:
 			putBooleanValue(preference, (Boolean)value);
-		else if(preference.getType().equals(Type.NUMERIC))
+			break;
+		case NUMERIC:
 			putBigDecimalValue(preference, (BigDecimal)value);
+			break;
+		}
 	}
 
 	public static String getStringValue( final Preference key )
