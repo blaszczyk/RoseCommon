@@ -64,11 +64,11 @@ public class RoseClient {
 
 	public List<Integer> getIds(final String typeName) throws RoseException
 	{
-		final String path = typeName + "/id";
+		final String path = "/" + typeName.toLowerCase() + "/id";
 		try
 		{
-			LOGGER.debug("requesting GET@/entity/" + path);
-			webClient.replacePath("/" + path);
+			LOGGER.debug("requesting GET@/entity" + path);
+			webClient.replacePath(path);
 			webClient.resetQuery();
 			final String encodedResponse = webClient.get(String.class);
 			final String response = URLDecoder.decode(encodedResponse, CODING_CHARSET);

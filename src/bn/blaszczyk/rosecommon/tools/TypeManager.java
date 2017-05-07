@@ -23,8 +23,6 @@ public class TypeManager {
 	private final static Map<String,Entity> entites = new HashMap<>();
 	private final static Map<String,EnumType> enums = new HashMap<>();
 	
-	private static Class<?> mainClass;
-	
 	private TypeManager()
 	{
 	}
@@ -34,15 +32,6 @@ public class TypeManager {
 		
 		ModelProvidingNonCreatingRoseParser parser = new ModelProvidingNonCreatingRoseParser(stream);
 		parser.parse();
-		try
-		{
-			mainClass = Class.forName(parser.getMainClassAsString());
-			LOGGER.info( "load main class " + mainClass.getName());
-		}
-		catch (ClassNotFoundException e1)
-		{
-			LOGGER.error("unable to load main class " + parser.getMainClassAsString(),e1);
-		}
 		for(Entity e : parser.getEntities())
 		{
 			entites.put(e.getSimpleClassName(), e);
@@ -115,11 +104,6 @@ public class TypeManager {
 	public static Collection<Class<? extends Readable>> getEntityClasses()
 	{
 		return entityClasses.values();
-	}
-	
-	public static Class<?> getMainClass()
-	{
-		return mainClass;
 	}
 
 	public static Collection<Entity> getEntites()
