@@ -45,7 +45,7 @@ public class RoseClient {
 		try
 		{
 			LOGGER.debug("requesting GET@/entity/" + path);
-			webClient.replacePath(path.toLowerCase());
+			webClient.replacePath("/" + path.toLowerCase());
 			webClient.resetQuery();
 			final List<RoseDto> dtos = new ArrayList<>();
 			final String encodedResponse = webClient.get(String.class);
@@ -68,7 +68,7 @@ public class RoseClient {
 		try
 		{
 			LOGGER.debug("requesting GET@/entity/" + path);
-			webClient.replacePath(path);
+			webClient.replacePath("/" + path);
 			webClient.resetQuery();
 			final String encodedResponse = webClient.get(String.class);
 			final String response = URLDecoder.decode(encodedResponse, CODING_CHARSET);
