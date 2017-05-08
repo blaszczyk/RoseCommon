@@ -5,7 +5,7 @@ import static bn.blaszczyk.rosecommon.tools.Preference.Type.*;
 public enum CommonPreference implements Preference {
 	
 	SERVICE_HOST(STRING,"servicehost","localhost",true),
-	SERVICE_PORT(STRING,"serviceport","4053",true),
+	SERVICE_PORT(INT,"serviceport",4053,true),
 
 	DB_HOST(STRING,"dbhost","localhost",true),
 	DB_PORT(STRING,"dbport", "3306",true),

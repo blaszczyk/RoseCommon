@@ -25,8 +25,8 @@ public class RestController implements ModelController, EntityAccess {
 	public RestController()
 	{
 		final String host = Preferences.getStringValue(CommonPreference.SERVICE_HOST);
-		final String port = Preferences.getStringValue(CommonPreference.SERVICE_PORT);
-		this.client = new RoseClient(String.format("http://%s:%s",host,port));
+		final int port = Preferences.getIntegerValue(CommonPreference.SERVICE_PORT);
+		this.client = new RoseClient(String.format("http://%s:%d",host,port));
 	}
 	
 	public void setEntityAccess(final EntityAccess access)
