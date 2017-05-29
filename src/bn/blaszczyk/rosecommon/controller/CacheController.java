@@ -76,7 +76,7 @@ public class CacheController extends AbstractControllerDecorator implements Mode
 	}
 	
 	@Override
-	public <T extends Readable> List<T> getEntitiesByIds(Class<T> type, List<Integer> ids)
+	public <T extends Readable> List<T> getEntitiesByIds(final Class<T> type, final List<Integer> ids)
 			throws RoseException
 	{
 		return getMany(type, ids);

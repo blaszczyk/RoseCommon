@@ -1,45 +1,60 @@
 package bn.blaszczyk.rosecommon.client;
 
-import java.net.URLDecoder;
-import java.net.URLEncoder;
 import java.util.Map;
 import java.util.stream.Collectors;
-
-import org.apache.cxf.jaxrs.client.WebClient;
-import org.apache.log4j.Logger;
 
 import com.google.gson.Gson;
 import com.google.gson.internal.StringMap;
 
 import bn.blaszczyk.rosecommon.RoseException;
 import bn.blaszczyk.rosecommon.dto.PreferenceDto;
+import bn.blaszczyk.rosecommon.tools.CommonPreference;
+import bn.blaszczyk.rosecommon.tools.Preferences;
 
 public class ServiceConfigClient {
-	
-	public static final String CODING_CHARSET = "UTF-8";
-	
-	private static final Logger LOGGER = Logger.getLogger(ServiceConfigClient.class);
 
 	private static final Gson GSON = new Gson();
 	
-	private final WebClient webClient;
+	private static ServiceConfigClient instance = null;
 
-	public ServiceConfigClient(final String url)
+	public static ServiceConfigClient getInstance()
 	{
-		webClient = WebClient.create(url + "/server/");
+		if(instance == null)
+		{
+			final String host = Preferences.getStringValue(CommonPreference.SERVICE_HOST);
+			final Integer port = Preferences.getIntegerValue(CommonPreference.SERVICE_PORT);
+			instance = new ServiceConfigClient(String.format("http://%s:%d", host, port));
+		}
+		return instance;
+	}
+	
+	public static void closeInstance()
+	{
+		if(instance != null)
+		{
+			instance.close();
+			instance = null;
+		}
+	}
+	
+	public static ServiceConfigClient newInstance(final String url)
+	{
+		return new ServiceConfigClient(url);
+	}
+	
+	private final CommonClient client;
+
+	private ServiceConfigClient(final String url)
+	{
+		client = CommonClient.newInstance(url + "/server");
 	}
 
 	public PreferenceDto getPreferences() throws RoseException
 	{
 		try
 		{
-			LOGGER.debug("requesting GET@/server/config");
-			webClient.replacePath("config");
-			webClient.resetQuery();
-			final String encodedResponse = webClient.get(String.class);
-			final String response = URLDecoder.decode(encodedResponse, CODING_CHARSET);
+			final String response = client.get("config");
 			final StringMap<?> stringMap = GSON.fromJson(response, StringMap.class);
-			LOGGER.debug("decoded response message:\r\n" + response);
 			return new PreferenceDto(stringMap);
 		}
 		catch (Exception e) 
@@ -52,13 +67,8 @@ public class ServiceConfigClient {
 	{
 		try
 		{
-			LOGGER.debug("requesting PUT@/server/config");
-			webClient.replacePath("config");
-			webClient.resetQuery();
 			final String request = GSON.toJson(dto);
-			LOGGER.debug("decoded request message:\r\n" + request);
-			final String encodedRequest = URLEncoder.encode(request, CODING_CHARSET);
-			webClient.put(encodedRequest);
+			client.put("config", request);
 		}
 		catch (Exception e) 
 		{
@@ -70,10 +80,7 @@ public class ServiceConfigClient {
 	{
 		try
 		{
-			webClient.replacePath("status");
-			webClient.resetQuery();
-			final String encodedResponse = webClient.get(String.class);
-			final String response = URLDecoder.decode(encodedResponse, CODING_CHARSET);
+			final String response = client.get("status");
 			final StringMap<?> status = GSON.fromJson(response, StringMap.class);
 			return status.entrySet().stream().
 				collect(Collectors.toMap(e -> e.getKey(), e -> String.valueOf(e.getValue())));
@@ -84,23 +91,19 @@ public class ServiceConfigClient {
 		}
 	}
 
-	public void postStopRequest()
+	public void postStopRequest() throws RoseException
 	{
-		webClient.replacePath("stop");
-		webClient.resetQuery();
-		webClient.post("");
+		client.post("stop", "");
 	}
 
-	public void postRestartRequest()
+	public void postRestartRequest() throws RoseException
 	{
-		webClient.replacePath("restart");
-		webClient.resetQuery();
-		webClient.post("");
+		client.post("restart", "");
 	}
 	
 	public void close()
 	{
-		webClient.close();
+		client.close();
 	}
 
 }

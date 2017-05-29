@@ -1,15 +1,10 @@
 package bn.blaszczyk.rosecommon.client;
 
-import java.net.URLDecoder;
-import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
-
-import org.apache.cxf.jaxrs.client.WebClient;
-import org.apache.log4j.Logger;
 
 import com.google.gson.Gson;
 import com.google.gson.internal.StringMap;
@@ -18,18 +13,14 @@ import bn.blaszczyk.rosecommon.RoseException;
 import bn.blaszczyk.rosecommon.dto.RoseDto;
 
 public class RoseClient {
-	
-	public static final String CODING_CHARSET = "UTF-8";
-	
-	private static final Logger LOGGER = Logger.getLogger(RoseClient.class);
 
 	private static final Gson GSON = new Gson();
 	
-	private final WebClient webClient;
+	private final CommonClient client;
 
 	public RoseClient(final String url)
 	{
-		webClient = WebClient.create(url + "/entity/");
+		client = CommonClient.newInstance(url + "/entity");
 	}
 	
 	public RoseDto getDto(final String typeName, final int id) throws RoseException
@@ -44,19 +35,14 @@ public class RoseClient {
 	{
 		try
 		{
-			LOGGER.debug("requesting GET@/entity/" + path);
-			webClient.replacePath("/" + path.toLowerCase());
-			webClient.resetQuery();
 			final List<RoseDto> dtos = new ArrayList<>();
-			final String encodedResponse = webClient.get(String.class);
-			final String response = URLDecoder.decode(encodedResponse, CODING_CHARSET);
+			final String response = client.get("/" + path.toLowerCase());
 			final StringMap<?>[] stringMaps = GSON.fromJson(response, StringMap[].class);
 			for(StringMap<?> stringMap : stringMaps)
 				dtos.add(new RoseDto(stringMap));
-			LOGGER.debug("decoded response message:\r\n" + response);
 			return dtos;
 		}
-		catch (Exception e) 
+		catch (Exception e)
 		{
 			throw RoseException.wrap(e, "Error on GET@/entity/" + path);
 		}
@@ -67,13 +53,8 @@ public class RoseClient {
 		final String path = "/" + typeName.toLowerCase() + "/id";
 		try
 		{
-			LOGGER.debug("requesting GET@/entity" + path);
-			webClient.replacePath(path);
-			webClient.resetQuery();
-			final String encodedResponse = webClient.get(String.class);
-			final String response = URLDecoder.decode(encodedResponse, CODING_CHARSET);
+			final String response = client.get(path);
 			final String[] ids = GSON.fromJson(response, String[].class);
-			LOGGER.debug("decoded response message:\r\n" + response);
 			return Arrays.stream(ids)
 						.map(String::trim)
 						.map(Integer::parseInt)
@@ -97,12 +78,7 @@ public class RoseClient {
 		final String path = typeName + "/count";
 		try
 		{
-			LOGGER.debug("requesting GET@/entity/" + typeName + "/count");
-			webClient.replacePath(path);
-			webClient.resetQuery();
-			final String encodedResponse = webClient.get(String.class);
-			final String response = URLDecoder.decode(encodedResponse, CODING_CHARSET);
-			LOGGER.debug("decoded response message:\r\n" + response);
+			final String response = client.get(path);
 			return Integer.parseInt(response.trim());
 		}
 		catch (Exception e) 
@@ -116,15 +92,8 @@ public class RoseClient {
 		final String path = pathForType(dto);
 		try
 		{
-			LOGGER.debug("requesting POST@/entity/" + path);
-			webClient.replacePath(path);
-			webClient.resetQuery();
 			final String request = GSON.toJson(dto);
-			LOGGER.debug("decoded request message:\r\n" + request);
-			final String encodedRequest = URLEncoder.encode(request, CODING_CHARSET);
-			final String encodedResponse = webClient.post(encodedRequest,String.class);
-			final String response = URLDecoder.decode(encodedResponse, CODING_CHARSET);
-			LOGGER.debug("decoded response message:\r\n" + response);
+			final String response = client.post(path, request);
 			final StringMap<?> stringMap = GSON.fromJson(response, StringMap.class);
 			return new RoseDto(stringMap);
 		}
@@ -139,13 +108,8 @@ public class RoseClient {
 		final String path = pathFor(dto);
 		try
 		{
-			LOGGER.debug("requesting PUT@/entity/" + path);
-			webClient.replacePath(path);
-			webClient.resetQuery();
 			final String request = GSON.toJson(dto);
-			LOGGER.debug("decoded request message:\r\n" + request);
-			final String encodedRequest = URLEncoder.encode(request, CODING_CHARSET);
-			webClient.put(encodedRequest);
+			client.put(path, request);
 		}
 		catch (Exception e) 
 		{
@@ -156,23 +120,12 @@ public class RoseClient {
 	public void deleteByID(final String typeName, final int id) throws RoseException
 	{
 		final String path = typeName + "/" + id;
-
-		try
-		{
-			LOGGER.debug("requesting DELETE@/entity/" + path);
-			webClient.replacePath(path);
-			webClient.resetQuery();
-			webClient.delete();
-		}
-		catch (Exception e) 
-		{
-			throw RoseException.wrap(e, "error on DELETE@/entity/" + path);
-		}
+		client.delete(path);
 	}
 
 	public void close()
 	{
-		webClient.close();
+		client.close();
 	}
 	
 	private String pathForType(final RoseDto dto) throws RoseException
@@ -180,7 +133,7 @@ public class RoseClient {
 		final Class<?> type = dto.getType();
 		if(type == null)
 			throw new RoseException("missing type in " + dto);
-		return type.getSimpleName().toLowerCase();
+		return "/" + type.getSimpleName().toLowerCase();
 	}
 	
 	private String pathFor(final RoseDto dto) throws RoseException

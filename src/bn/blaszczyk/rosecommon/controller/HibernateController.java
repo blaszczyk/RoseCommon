@@ -145,6 +145,8 @@ public class HibernateController implements ModelController {
 				criteria.add(Restrictions.idEq(id));
 				final T result = type.cast(criteria.uniqueResult());
 				LOGGER.debug("end " + message);
+				if(result == null)
+					throw new RoseException(type.getSimpleName() + " with id=" + id + " not found.");
 				return result;
 			}
 		}
@@ -155,9 +157,11 @@ public class HibernateController implements ModelController {
 	}
 	
 	@Override
-	public <T extends Readable> List<T> getEntitiesByIds(final Class<T> type, List<Integer> ids)
+	public <T extends Readable> List<T> getEntitiesByIds(final Class<T> type, final List<Integer> ids)
 			throws RoseException
 	{
+		if(ids.isEmpty())
+			return Collections.emptyList();
 		final Session session = getSession();
 		final String message = "fetching " + type.getSimpleName() + " ids=" + ids;
 		try
