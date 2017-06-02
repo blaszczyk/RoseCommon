@@ -2,6 +2,8 @@ package bn.blaszczyk.rosecommon.client;
 
 import java.io.File;
 import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 
@@ -100,9 +102,7 @@ public class FileClient {
 			LOGGER.debug("requesting GET@/" + path);
 			webClient.replacePath("/" + path.toLowerCase());
 			webClient.resetQuery();
-			final byte[] bytes = Files.readAllBytes(file.toPath());
-			final String request = new String(bytes);
-			webClient.put(request);
+			webClient.put(file);
 		}
 		catch(final Exception e)
 		{
@@ -115,9 +115,16 @@ public class FileClient {
 		webClient.close();
 	}
 	
-	public String fullPathFor(final String path) throws RoseException
+	public URL urlFor(final String path) throws RoseException
 	{
-		return webClient.getBaseURI().toString() + encodePath(path);
+		try
+		{
+			return new URL(webClient.getBaseURI().toString() + encodePath(path));
+		}
+		catch (MalformedURLException e)
+		{
+			throw RoseException.wrap(e, "Error creating URL for " + path);
+		}
 	}
 
 

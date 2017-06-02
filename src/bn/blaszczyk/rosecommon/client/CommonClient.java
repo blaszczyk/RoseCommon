@@ -57,8 +57,7 @@ public class CommonClient {
 		try
 		{
 			LOGGER.debug("requesting GET@/" + path);
-			webClient.replacePath("/" + path.toLowerCase());
-			webClient.resetQuery();
+			setPath(path);
 			for(final Map.Entry<String, Object[]> query : queries.entrySet())
 				webClient.query(query.getKey(), query.getValue());
 			final String encodedResponse = webClient.get(String.class);
@@ -82,8 +81,7 @@ public class CommonClient {
 		try
 		{
 			LOGGER.debug("requesting POST@/" + path);
-			webClient.replacePath(path);
-			webClient.resetQuery();
+			setPath(path);
 			for(final Map.Entry<String, Object[]> query : queries.entrySet())
 				webClient.query(query.getKey(), query.getValue());
 			LOGGER.debug("decoded request message:\r\n" + request);
@@ -109,8 +107,7 @@ public class CommonClient {
 		try
 		{
 			LOGGER.debug("requesting PUT@/" + path);
-			webClient.replacePath(path);
-			webClient.resetQuery();
+			setPath(path);
 			for(final Map.Entry<String, Object[]> query : queries.entrySet())
 				webClient.query(query.getKey(), query.getValue());
 			LOGGER.debug("decoded request message:\r\n" + request);
@@ -133,8 +130,7 @@ public class CommonClient {
 		try
 		{
 			LOGGER.debug("requesting DELETE@/" + path);
-			webClient.replacePath(path);
-			webClient.resetQuery();
+			setPath(path);
 			for(final Map.Entry<String, Object[]> query : queries.entrySet())
 				webClient.query(query.getKey(), query.getValue());
 			webClient.delete();
@@ -155,4 +151,11 @@ public class CommonClient {
 		webClient.close();
 	}
 
+
+	private void setPath(final String path)
+	{
+		final String absolutePath = path.startsWith("/") ? path : "/" + path;
+		webClient.replacePath(absolutePath);
+		webClient.resetQuery();
+	}
 }

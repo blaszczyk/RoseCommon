@@ -30,9 +30,7 @@ public class FileConverter {
 		else
 			cutPath = path;
 		final File file = new File(baseDir,cutPath);
-		if(file.isFile())
-			return file;
-		return new File(path);
+		return file;
 	}
 	
 	public String relativePath(final File file)
