@@ -16,7 +16,9 @@ public enum CommonPreference implements Preference {
 	BASE_DIRECTORY(STRING,"basefolder","C:/temp"),
 	LOG_LEVEL(STRING,"loglevel","INFO"),
 	FETCH_ON_START(BOOLEAN,"fetchonstart",true,true),
-	FETCH_TIMESPAN(INT,"fetchtimespan",Integer.MAX_VALUE);
+	FETCH_TIMESPAN(INT,"fetchtimespan",Integer.MAX_VALUE), 
+	
+	DEVELOPEMENT(BOOLEAN,"developement_mode",true);
 	
 	private final Type type;
 	private final String key;
