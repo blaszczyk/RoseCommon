@@ -22,7 +22,6 @@ test/
 # Generated Files
 #
 
-*.xml
 src/foo/
 src/caro/
 src/galabu/
