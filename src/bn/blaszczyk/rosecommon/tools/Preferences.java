@@ -11,14 +11,14 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.*;
 
 import bn.blaszczyk.rose.model.Entity;
 import bn.blaszczyk.rose.model.Readable;
 
 public class Preferences {
 	
-	private static final Logger LOGGER = Logger.getLogger(Preferences.class);
+	private static final Logger LOGGER = LogManager.getLogger(Preferences.class);
 	
 	private static final Map<Preference, Object> PREFS_CACHE = new HashMap<>();
 	

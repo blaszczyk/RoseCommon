@@ -10,14 +10,14 @@ import java.util.NoSuchElementException;
 import java.util.Spliterator;
 import java.util.stream.Stream;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.*;
 
 import bn.blaszczyk.rose.model.Readable;
 import bn.blaszczyk.rosecommon.RoseException;
 
 public class LazyList<T extends Readable> implements List<T> 
 {
-	private final Logger LOGGER = Logger.getLogger(LazyList.class);
+	private final Logger LOGGER = LogManager.getLogger(LazyList.class);
 	
 	private List<T> list;
 	

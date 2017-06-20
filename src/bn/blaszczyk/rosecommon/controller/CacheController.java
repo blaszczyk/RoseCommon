@@ -3,7 +3,7 @@ package bn.blaszczyk.rosecommon.controller;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.*;
 
 import bn.blaszczyk.rose.model.Readable;
 import bn.blaszczyk.rose.model.Writable;
@@ -15,7 +15,7 @@ import bn.blaszczyk.rosecommon.tools.TypeManager;
 
 public class CacheController extends AbstractControllerDecorator implements ModelController, EntityAccess {
 	
-	private static final Logger LOGGER = Logger.getLogger(CacheController.class);
+	private static final Logger LOGGER = LogManager.getLogger(CacheController.class);
 
 	private final Map<Class<? extends Readable>,Map<Integer,Readable>> allEntities = new HashMap<>();
 	
@@ -47,7 +47,7 @@ public class CacheController extends AbstractControllerDecorator implements Mode
 	}
 	
 	@Override
-	public List<Integer> getIds(Class<? extends Readable> type) throws RoseException
+	public <T extends Readable> List<Integer> getIds(final Class<T> type) throws RoseException
 	{
 		if(!fetchedTypes.contains(type))
 			return controller.getIds(type);
@@ -59,7 +59,7 @@ public class CacheController extends AbstractControllerDecorator implements Mode
 	}
 
 	@Override
-	public int getEntityCount(final Class<? extends Readable> type) throws RoseException
+	public <T extends Readable> int getEntityCount(final Class<T> type) throws RoseException
 	{
 		if(fetchedTypes.contains(type))
 			return allEntities.get(type).size();

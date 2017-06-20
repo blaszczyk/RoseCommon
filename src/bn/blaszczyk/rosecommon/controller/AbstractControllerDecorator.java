@@ -22,13 +22,13 @@ public abstract class AbstractControllerDecorator implements ModelController {
 	}
 	
 	@Override
-	public List<Integer> getIds(final Class<? extends Readable> type) throws RoseException
+	public <T extends Readable> List<Integer> getIds(final Class<T> type) throws RoseException
 	{
 		return controller.getIds(type);
 	}
 	
 	@Override
-	public int getEntityCount(final Class<? extends Readable> type) throws RoseException
+	public <T extends Readable> int getEntityCount(final Class<T> type) throws RoseException
 	{
 		return controller.getEntityCount(type);
 	}

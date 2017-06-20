@@ -25,7 +25,7 @@ public class SynchronizingDecorator implements ModelController {
 	}
 	
 	@Override
-	public List<Integer> getIds(final Class<? extends Readable> type) throws RoseException
+	public <T extends Readable> List<Integer> getIds(final Class<T> type) throws RoseException
 	{
 		synchronized (controller)
 		{
@@ -34,7 +34,7 @@ public class SynchronizingDecorator implements ModelController {
 	}
 	
 	@Override
-	public int getEntityCount(final Class<? extends Readable> type) throws RoseException
+	public <T extends Readable> int getEntityCount(final Class<T> type) throws RoseException
 	{
 		synchronized (controller)
 		{

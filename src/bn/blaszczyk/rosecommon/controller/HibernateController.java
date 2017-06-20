@@ -1,20 +1,16 @@
 
 package bn.blaszczyk.rosecommon.controller;
 import java.util.*;
-import java.util.stream.Collectors;
 
-import org.apache.log4j.Logger;
-import org.hibernate.Criteria;
+import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
+import javax.persistence.Persistence;
+import javax.persistence.criteria.CriteriaBuilder;
+import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Root;
+
+import org.apache.logging.log4j.*;
 import org.hibernate.HibernateException;
-import org.hibernate.SQLQuery;
-import org.hibernate.Session;
-import org.hibernate.SessionFactory;
-import org.hibernate.Transaction;
-import org.hibernate.cfg.AnnotationConfiguration;
-import org.hibernate.cfg.Configuration;
-import org.hibernate.criterion.Expression;
-import org.hibernate.criterion.Projections;
-import org.hibernate.criterion.Restrictions;
 
 import bn.blaszczyk.rose.model.Readable;
 import bn.blaszczyk.rose.model.Writable;
@@ -27,7 +23,7 @@ import static bn.blaszczyk.rosecommon.tools.CommonPreference.*;
 
 public class HibernateController implements ModelController {
 	
-	private static final Logger LOGGER = Logger.getLogger(HibernateController.class);
+	private static final Logger LOGGER = LogManager.getLogger(HibernateController.class);
 	private static final Calendar calendar = Calendar.getInstance();
 
 	private static final String KEY_URL = "hibernate.connection.url";
@@ -36,37 +32,55 @@ public class HibernateController implements ModelController {
 
 	private static final String TIMESTAMP = "timestamp";
 	
-	private SessionFactory sessionFactory;
-	private Session session;
+	private final EntityManager entityManager;
 
 	public HibernateController()
 	{
-		configureDataBase();
+		final String dburl = getStringValue(DB_HOST);
+		final String dbport = getStringValue(DB_PORT);
+		final String dbname = getStringValue(DB_NAME);
+		final String dbuser = getStringValue(DB_USER);
+		final String dbpassword = getStringValue(DB_PASSWORD);
+		
+		final Map<String, String> properties = new HashMap<>();
+		if(dburl != null && dbport != null && dbname != null)
+			properties.put(KEY_URL, String.format("jdbc:mysql://%s:%s/%s",dburl,dbport,dbname));
+		if(dbuser != null)
+			properties.put(KEY_USER, dbuser);
+		if(dbpassword != null)
+			properties.put(KEY_PW, dbpassword);
+		
+		final EntityManagerFactory entityManagerFactory = Persistence.createEntityManagerFactory("rosePersistenceUnit", properties);
+		entityManager = entityManagerFactory.createEntityManager();
+		
 	}
 
 	@Override
-	public <T extends Readable> List<T> getEntities(Class<T> type) throws RoseException
+	public <T extends Readable> List<T> getEntities(final Class<T> type) throws RoseException
 	{
 		try
 		{
 			LOGGER.debug("start load" + " " + type.getSimpleName());
-			Session session = getSession();
-			synchronized (session)
+			synchronized (entityManager)
 			{
-				Criteria criteria = session.createCriteria(type);
+				final Class<? extends T> implType = TypeManager.getImplClass(type);
+				final CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+				final CriteriaQuery<T> query = cb.createQuery(type);
+				final Root<? extends T> root = query.from(implType);
+				query.select(root);
 
 				int fetchTimeSpan = getIntegerValue(FETCH_TIMESPAN);
 				if(fetchTimeSpan != Integer.MAX_VALUE)
 				{
 					calendar.setTime(new Date());
 					calendar.add(Calendar.DATE, - fetchTimeSpan);
-					criteria.add( Expression.ge(TIMESTAMP,calendar.getTime()));
+					cb.greaterThanOrEqualTo(root.get(TIMESTAMP), calendar.getTime());
 					LOGGER.debug("fetch entity age restriction: " + fetchTimeSpan + " days");
 				}
+				final List<T> list = entityManager.createQuery(query).getResultList();
 				
-				List<?> list = criteria.setResultTransformer(Criteria.DISTINCT_ROOT_ENTITY).list();
 				LOGGER.debug("end load entities: " + type.getName() + " count=" + list.size());
-				return list.stream().map(type::cast).collect(Collectors.toList());
+				return list;
 				
 			}
 		}
@@ -77,27 +91,30 @@ public class HibernateController implements ModelController {
 	}
 	
 	@Override
-	public List<Integer> getIds(final Class<? extends Readable> type) throws RoseException
+	public <T extends Readable> List<Integer> getIds(final Class<T> type) throws RoseException
 	{
-		final Session session = getSession();
 		final String message = "fetching all ids of" + type.getSimpleName();
 		try
 		{
-			synchronized (session)
+			synchronized (entityManager)
 			{
 				LOGGER.debug("start " + message);
-				final Criteria criteria = session.createCriteria(type);
-				criteria.setProjection(Projections.property("id"));
+				final Class<? extends T> implType = TypeManager.getImplClass(type);
+				final CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+				final CriteriaQuery<Integer> query = cb.createQuery(Integer.class);
+				final Root<? extends T> root = query.from(implType);
+				final CriteriaQuery<Integer> select = query.select(root.get("id"));
 				final int fetchTimeSpan = getIntegerValue(FETCH_TIMESPAN);
 				if(fetchTimeSpan != Integer.MAX_VALUE)
 				{
 					calendar.setTime(new Date());
 					calendar.add(Calendar.DATE, - fetchTimeSpan);
-					criteria.add( Expression.ge(TIMESTAMP,calendar.getTime()));
-				}				
-				final List<?> list = criteria.setResultTransformer(Criteria.DISTINCT_ROOT_ENTITY).list();
+					cb.greaterThanOrEqualTo(root.get(TIMESTAMP), calendar.getTime());
+				}
+				
+				final List<Integer> list = entityManager.createQuery(select).getResultList();
 				LOGGER.debug("end " + message + " count=" + list.size());
-				return list.stream().map(Integer.class::cast).collect(Collectors.toList());
+				return list;
 			}
 		}
 		catch(HibernateException e)
@@ -107,22 +124,23 @@ public class HibernateController implements ModelController {
 	}
 
 	@Override
-	public int getEntityCount(final Class<? extends Readable> type) throws RoseException
+	public <T extends Readable> int getEntityCount(final Class<T> type) throws RoseException
 	{
-		final Session session = getSession();
 		final String message = "fetching count for " + type.getSimpleName();
 		try
 		{
-			synchronized (session)
+			synchronized (entityManager)
 			{
 				LOGGER.debug("start " + message);
-				final Object oCount = session.createCriteria(type)
-										.setProjection(Projections.rowCount())
-										.uniqueResult();
-				LOGGER.debug("end " + message + " count= " + oCount);
-				if(oCount instanceof Number)
-					return ((Number)oCount).intValue();
-				throw new RoseException("No Number instance: " + oCount);
+				final Class<? extends T> implType = TypeManager.getImplClass(type);
+				final CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+				final CriteriaQuery<Long> query = cb.createQuery(Long.class);
+				final Root<? extends T> root = query.from(implType);
+				query.select(cb.count(root));
+
+				final Long count = entityManager.createQuery(query).getSingleResult();
+				LOGGER.debug("end " + message + " count= " + count);
+				return count.intValue();
 			}
 		}
 		catch (HibernateException e) 
@@ -134,17 +152,19 @@ public class HibernateController implements ModelController {
 	@Override
 	public <T extends Readable> T getEntityById(final Class<T> type, final int id) throws RoseException
 	{
-		final Session session = getSession();
 		final String message = "fetching " + type.getSimpleName() + " id=" + id;
 		try
 		{
-			synchronized (session)
+			synchronized (entityManager)
 			{
 				LOGGER.debug("start " + message);
-				final Criteria criteria = session.createCriteria(type);
-				criteria.add(Restrictions.idEq(id));
-				final T result = type.cast(criteria.uniqueResult());
+				final Class<? extends T> implType = TypeManager.getImplClass(type);
+				final CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+				final CriteriaQuery<T> query = cb.createQuery(type);
+				final Root<? extends T> root = query.from(implType);
+				query.where(cb.equal(root.get("id"), id));
 				LOGGER.debug("end " + message);
+				final T result = entityManager.createQuery(query).getSingleResult();
 				if(result == null)
 					throw new RoseException(type.getSimpleName() + " with id=" + id + " not found.");
 				return result;
@@ -162,17 +182,18 @@ public class HibernateController implements ModelController {
 	{
 		if(ids.isEmpty())
 			return Collections.emptyList();
-		final Session session = getSession();
 		final String message = "fetching " + type.getSimpleName() + " ids=" + ids;
 		try
 		{
-			synchronized (session)
+			synchronized (entityManager)
 			{
 				LOGGER.debug("start " + message);
-				final Criteria criteria = session.createCriteria(type);
-				criteria.add(Restrictions.in("id", ids));
-				final List<?> list = criteria.list();
-				final List<T> entities = list.stream().map(type::cast).collect(Collectors.toList());
+				final Class<? extends T> implType = TypeManager.getImplClass(type);
+				final CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+				final CriteriaQuery<T> query = cb.createQuery(type);
+				final Root<? extends T> root = query.from(implType);
+				query.where(root.get("id").in(ids));
+				final List<T> entities = entityManager.createQuery(query).getResultList();
 				LOGGER.debug("start " + message);
 				return entities;
 			}
@@ -186,30 +207,25 @@ public class HibernateController implements ModelController {
 	@Override
 	public void update(Writable... entities) throws RoseException
 	{
-		final Session session = getSession();
 		try
 		{
-			synchronized (session)
+			synchronized (entityManager)
 			{
 				LOGGER.debug("start update");
-				final Transaction transaction = session.beginTransaction();
 				for(Writable entity : entities)
 				{
 					if(entity == null)
 						continue;
 					if(entity.getId() < 0)
 					{
-						LOGGER.warn("saving new entity:\r\n" + EntityUtils.toStringFull(entity));
-						final Integer id = (Integer) session.save(entity);
-						entity.setId(id);
+						throw new RoseException("Impossible Id: " + entity.getId());
 					}
 					else
 					{
 						LOGGER.debug("updating entity:\r\n" + EntityUtils.toStringFull(entity));
-						session.update(entity);
+						entityManager.merge(entity);
 					}
 				}
-				transaction.commit();
 				LOGGER.debug("end update");
 			}
 		}
@@ -225,9 +241,8 @@ public class HibernateController implements ModelController {
 		if(entity == null)
 			return;
 		LOGGER.warn("start deleting entity:\r\n" + EntityUtils.toStringFull(entity));
-		final Session sesson = getSession();
 		final Set<Writable> changedEntities = new LinkedHashSet<>();
-		synchronized (sesson)
+		synchronized (entityManager)
 		{
 			for(int i = 0; i < entity.getEntityCount(); i++)
 			{
@@ -242,9 +257,7 @@ public class HibernateController implements ModelController {
 			update(changedEntities.toArray(new Writable[changedEntities.size()]));
 			try
 			{
-				sesson.beginTransaction();
-				sesson.delete(entity);
-				sesson.getTransaction().commit();
+				entityManager.remove(entity);
 				LOGGER.debug("end deleting entity: " + EntityUtils.toStringSimple(entity));
 			}
 			catch(HibernateException e)
@@ -258,13 +271,10 @@ public class HibernateController implements ModelController {
 	public <T extends Readable> T createNew(final Class<T> type) throws RoseException
 	{
 		final T entity = TypeManager.newInstance(type);
-		final Session session = getSession();
-		synchronized (session)
+		synchronized (entityManager)
 		{
 			LOGGER.debug("start creating " + type.getSimpleName());
-			session.beginTransaction();
-			entity.setId((Integer) session.save(entity));
-			session.getTransaction().commit();
+			entityManager.persist(entity);
 		}
 		LOGGER.debug("end creating: " + EntityUtils.toStringPrimitives(entity));
 		return entity;
@@ -299,28 +309,17 @@ public class HibernateController implements ModelController {
 	@Override
 	public void close()
 	{
-		if(session != null && !session.isOpen())
-		{
-			LOGGER.debug("closing session " + session);
-			synchronized (session)
-			{
-				session.close();
-			}
-			LOGGER.debug("session closed");
-		}
-		session = null;
+		entityManager.close();
 	}
 	
 	public List<?> listQuery( final String query ) throws RoseException
 	{
-		final Session session = getSession();
 		try
 		{
-			synchronized (session)
+			synchronized (entityManager)
 			{
 				LOGGER.debug("start query \"" + query + "\"");
-				final SQLQuery sqlQuery = session.createSQLQuery(query);
-				final List<?> list = sqlQuery.setResultTransformer(Criteria.ROOT_ENTITY).list();
+				final List<?> list = entityManager.createNamedQuery(query).getResultList();
 				if(list == null)
 					return Collections.emptyList();
 				return list;
@@ -359,41 +358,5 @@ public class HibernateController implements ModelController {
 //			message = "unknown";
 //		LOGGER.debug(dbMessage + " - " + message);
 //	}
-
-	private void configureDataBase()
-	{
-		String dburl = getStringValue(DB_HOST);
-		String dbport = getStringValue(DB_PORT);
-		String dbname = getStringValue(DB_NAME);
-		String dbuser = getStringValue(DB_USER);
-		String dbpassword = getStringValue(DB_PASSWORD);
-
-		Configuration configuration = new AnnotationConfiguration().configure();
-		if(dburl != null && dbport != null && dbname != null)
-			configuration.setProperty(KEY_URL, String.format("jdbc:mysql://%s:%s/%s",dburl,dbport,dbname));
-		if(dbuser != null)
-			configuration.setProperty(KEY_USER, dbuser);
-		if(dbpassword != null)
-			configuration.setProperty(KEY_PW, dbpassword);
-		sessionFactory = configuration.buildSessionFactory();
-	}
-
-	private Session getSession() throws RoseException
-	{
-		if(session == null || !session.isOpen())
-		{
-			LOGGER.debug("opening session");
-			try
-			{
-				session = sessionFactory.openSession();
-				LOGGER.info("session open");
-			}
-			catch (HibernateException e) 
-			{
-				throw new RoseException("no open session", e);
-			}
-		}
-		return session;
-	}
 	
 }

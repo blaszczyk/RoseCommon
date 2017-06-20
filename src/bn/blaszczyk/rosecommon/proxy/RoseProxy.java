@@ -9,7 +9,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.*;
 
 import bn.blaszczyk.rose.model.Entity;
 import bn.blaszczyk.rose.model.EntityField;
@@ -25,7 +25,7 @@ import bn.blaszczyk.rosecommon.tools.TypeManager;
 
 public class RoseProxy implements InvocationHandler {
 	
-	private static final Logger LOGGER = Logger.getLogger(RoseProxy.class);
+	private static final Logger LOGGER = LogManager.getLogger(RoseProxy.class);
 	
 	private static Boolean fetchLock = false;
 	

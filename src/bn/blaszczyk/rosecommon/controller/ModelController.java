@@ -11,21 +11,21 @@ public interface ModelController
 	
 	public <T extends Readable> List<T> getEntities(final Class<T> type) throws RoseException;
 	
-	public List<Integer> getIds(final Class<? extends Readable> type) throws RoseException;
+	public <T extends Readable> List<Integer> getIds(final Class<T> type) throws RoseException;
 	
-	public int getEntityCount(Class<? extends Readable> type) throws RoseException;
+	public <T extends Readable> int getEntityCount(final Class<T> type) throws RoseException;
 	
-	public <T extends Readable> T getEntityById(Class<T> type, int id) throws RoseException;
+	public <T extends Readable> T getEntityById(final Class<T> type, int id) throws RoseException;
 	
-	public <T extends Readable> List<T> getEntitiesByIds(Class<T> type, List<Integer> ids) throws RoseException;
+	public <T extends Readable> List<T> getEntitiesByIds(final Class<T> type, final List<Integer> ids) throws RoseException;
 	
-	public <T extends Readable> T createNew(Class<T> type) throws RoseException;
+	public <T extends Readable> T createNew(final Class<T> type) throws RoseException;
 	
-	public Writable createCopy(Writable entity) throws RoseException;
+	public Writable createCopy(final Writable entity) throws RoseException;
 	
-	public void update(Writable... entities) throws RoseException;
+	public void update(final Writable... entities) throws RoseException;
 
-	public void delete(Writable entity) throws RoseException;
+	public void delete(final Writable entity) throws RoseException;
 
 	public void close();
 	

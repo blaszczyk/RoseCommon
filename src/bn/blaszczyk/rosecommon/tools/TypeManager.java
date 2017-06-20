@@ -6,7 +6,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.*;
 
 import bn.blaszczyk.rose.model.*;
 import bn.blaszczyk.rose.model.Readable;
@@ -15,7 +15,7 @@ import bn.blaszczyk.rosecommon.RoseException;
 
 public class TypeManager {
 	
-	private static final Logger LOGGER = Logger.getLogger(TypeManager.class);
+	private static final Logger LOGGER = LogManager.getLogger(TypeManager.class);
 	
 	private final static Map<String, Class<? extends Readable>> entityClasses = new HashMap<>();
 	private final static Map<String, Class<? extends Readable>> implClasses = new HashMap<>();
@@ -27,7 +27,7 @@ public class TypeManager {
 	{
 	}
 	
-	public static void parseRoseFile(InputStream stream)
+	public static void parseRoseFile(final InputStream stream)
 	{
 		
 		ModelProvidingNonCreatingRoseParser parser = new ModelProvidingNonCreatingRoseParser(stream);
@@ -147,5 +147,11 @@ public class TypeManager {
 		{
 			throw new RoseException("unable to create new " + type.getName(), e);
 		}
+	}
+
+	public static <T extends Readable> Class<? extends T> getImplClass(final Class<T> type)
+	{
+		final Class<?> implType = implClasses.get(type.getSimpleName().toLowerCase());
+		return implType.asSubclass(type);
 	}
 }

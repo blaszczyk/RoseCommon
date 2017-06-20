@@ -55,13 +55,13 @@ public class RestController implements ModelController, EntityAccess {
 	}
 	
 	@Override
-	public List<Integer> getIds(final Class<? extends Readable> type) throws RoseException
+	public <T extends Readable> List<Integer> getIds(final Class<T> type) throws RoseException
 	{
 		return client.getIds(type.getSimpleName().toLowerCase());
 	}
 	
 	@Override
-	public int getEntityCount(final Class<? extends Readable> type) throws RoseException
+	public <T extends Readable> int getEntityCount(final Class<T> type) throws RoseException
 	{
 		return client.getCount(type.getSimpleName().toLowerCase());
 	}

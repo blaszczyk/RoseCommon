@@ -6,7 +6,7 @@ import java.util.Collections;
 import java.util.Map;
 
 import org.apache.cxf.jaxrs.client.WebClient;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.*;
 
 import bn.blaszczyk.rosecommon.RoseException;
 import bn.blaszczyk.rosecommon.tools.CommonPreference;
@@ -16,7 +16,7 @@ public class CommonClient {
 	
 	public static final String CODING_CHARSET = "UTF-8";
 	
-	private static final Logger LOGGER = Logger.getLogger(CommonClient.class);
+	private static final Logger LOGGER = LogManager.getLogger(CommonClient.class);
 	
 	private final WebClient webClient;
 	
@@ -87,6 +87,8 @@ public class CommonClient {
 			LOGGER.debug("decoded request message:\r\n" + request);
 			final String encodedRequest = URLEncoder.encode(request, CODING_CHARSET);
 			final String encodedResponse = webClient.post(encodedRequest,String.class);
+			if(encodedResponse == null)
+				return "";
 			final String response = URLDecoder.decode(encodedResponse, CODING_CHARSET);
 			LOGGER.debug("decoded response message:\r\n" + response);
 			return response;
