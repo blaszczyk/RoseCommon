@@ -1,5 +1,5 @@
-
 package bn.blaszczyk.rosecommon.controller;
+
 import java.util.*;
 
 import javax.persistence.EntityManager;
@@ -10,7 +10,6 @@ import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Root;
 
 import org.apache.logging.log4j.*;
-import org.hibernate.HibernateException;
 
 import bn.blaszczyk.rose.model.Readable;
 import bn.blaszczyk.rose.model.Writable;
@@ -21,20 +20,20 @@ import bn.blaszczyk.rosecommon.tools.TypeManager;
 import static bn.blaszczyk.rosecommon.tools.Preferences.*;
 import static bn.blaszczyk.rosecommon.tools.CommonPreference.*;
 
-public class HibernateController implements ModelController {
+public class PersistenceController implements ModelController {
 	
-	private static final Logger LOGGER = LogManager.getLogger(HibernateController.class);
+	private static final Logger LOGGER = LogManager.getLogger(PersistenceController.class);
 	private static final Calendar calendar = Calendar.getInstance();
 
-	private static final String KEY_URL = "hibernate.connection.url";
-	private static final String KEY_USER = "hibernate.connection.username";
-	private static final String KEY_PW = "hibernate.connection.password";
+	private static final String KEY_URL = "javax.persistence.jdbc.url";
+	private static final String KEY_USER = "javax.persistence.jdbc.user";
+	private static final String KEY_PW = "javax.persistence.jdbc.password";
 
 	private static final String TIMESTAMP = "timestamp";
 	
 	private final EntityManager entityManager;
 
-	public HibernateController()
+	public PersistenceController() throws RoseException
 	{
 		final String dburl = getStringValue(DB_HOST);
 		final String dbport = getStringValue(DB_PORT);
@@ -50,8 +49,15 @@ public class HibernateController implements ModelController {
 		if(dbpassword != null)
 			properties.put(KEY_PW, dbpassword);
 		
-		final EntityManagerFactory entityManagerFactory = Persistence.createEntityManagerFactory("rosePersistenceUnit", properties);
-		entityManager = entityManagerFactory.createEntityManager();
+		try
+		{
+			final EntityManagerFactory entityManagerFactory = Persistence.createEntityManagerFactory("rosePersistenceUnit", properties);
+			entityManager = entityManagerFactory.createEntityManager();
+		}
+		catch(Exception e)
+		{
+			throw RoseException.wrap(e, "Error initializing PersistenceController");
+		}
 		
 	}
 
@@ -84,7 +90,7 @@ public class HibernateController implements ModelController {
 				
 			}
 		}
-		catch(HibernateException e)
+		catch(Exception e)
 		{
 			throw new RoseException("error loading entities: " + type.getName(), e);
 		}
@@ -103,7 +109,7 @@ public class HibernateController implements ModelController {
 				final CriteriaBuilder cb = entityManager.getCriteriaBuilder();
 				final CriteriaQuery<Integer> query = cb.createQuery(Integer.class);
 				final Root<? extends T> root = query.from(implType);
-				final CriteriaQuery<Integer> select = query.select(root.get("id"));
+				query.select(root.get("id"));
 				final int fetchTimeSpan = getIntegerValue(FETCH_TIMESPAN);
 				if(fetchTimeSpan != Integer.MAX_VALUE)
 				{
@@ -112,12 +118,12 @@ public class HibernateController implements ModelController {
 					cb.greaterThanOrEqualTo(root.get(TIMESTAMP), calendar.getTime());
 				}
 				
-				final List<Integer> list = entityManager.createQuery(select).getResultList();
+				final List<Integer> list = entityManager.createQuery(query).getResultList();
 				LOGGER.debug("end " + message + " count=" + list.size());
 				return list;
 			}
 		}
-		catch(HibernateException e)
+		catch(Exception e)
 		{
 			throw new RoseException("error " + message, e);
 		}
@@ -143,7 +149,7 @@ public class HibernateController implements ModelController {
 				return count.intValue();
 			}
 		}
-		catch (HibernateException e) 
+		catch (Exception e) 
 		{
 			throw RoseException.wrap(e, "error getting count for " + type.getSimpleName());
 		}
@@ -170,7 +176,7 @@ public class HibernateController implements ModelController {
 				return result;
 			}
 		}
-		catch (HibernateException e) 
+		catch (Exception e) 
 		{
 			throw RoseException.wrap(e, "error getting " + type.getSimpleName() + " with id=" + id);
 		}
@@ -198,7 +204,7 @@ public class HibernateController implements ModelController {
 				return entities;
 			}
 		}
-		catch (HibernateException e) 
+		catch (Exception e) 
 		{
 			throw RoseException.wrap(e, "error getting " + type.getSimpleName() + " with ids=" + ids);
 		}
@@ -229,7 +235,7 @@ public class HibernateController implements ModelController {
 				LOGGER.debug("end update");
 			}
 		}
-		catch(HibernateException e)
+		catch(Exception e)
 		{
 			throw new RoseException("error saving or updating entities to database",e);
 		}
@@ -260,7 +266,7 @@ public class HibernateController implements ModelController {
 				entityManager.remove(entity);
 				LOGGER.debug("end deleting entity: " + EntityUtils.toStringSimple(entity));
 			}
-			catch(HibernateException e)
+			catch(Exception e)
 			{
 				throw new RoseException("error deleting " + entity, e);
 			}			
@@ -325,7 +331,7 @@ public class HibernateController implements ModelController {
 				return list;
 			}
 		}
-		catch(HibernateException e)
+		catch(Exception e)
 		{
 			throw new RoseException("Unable to execute query '" + query + "'", e);
 		}
@@ -344,7 +350,7 @@ public class HibernateController implements ModelController {
 //			{
 //				connected = ((SessionImpl)session).connection().isValid(10);
 //			}
-//			catch (HibernateException | SQLException e1)
+//			catch (Exception | SQLException e1)
 //			{
 //				if(wasConnected)
 //				{

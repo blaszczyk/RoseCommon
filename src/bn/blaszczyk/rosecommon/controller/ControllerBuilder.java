@@ -1,5 +1,7 @@
 package bn.blaszczyk.rosecommon.controller;
 
+import bn.blaszczyk.rosecommon.RoseException;
+
 public class ControllerBuilder {
 	
 	public static ControllerBuilder forService()
@@ -7,9 +9,9 @@ public class ControllerBuilder {
 		return new ControllerBuilder(new RestController());
 	}
 	
-	public static ControllerBuilder forDataBase()
+	public static ControllerBuilder forDataBase() throws RoseException
 	{
-		return new ControllerBuilder(new HibernateController());
+		return new ControllerBuilder(new PersistenceController());
 	}
 	
 	private final  ModelController innerController;
