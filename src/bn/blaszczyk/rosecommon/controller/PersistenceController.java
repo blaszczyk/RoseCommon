@@ -4,6 +4,7 @@ import java.util.*;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
+import javax.persistence.EntityTransaction;
 import javax.persistence.Persistence;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
@@ -280,7 +281,10 @@ public class PersistenceController implements ModelController {
 		synchronized (entityManager)
 		{
 			LOGGER.debug("start creating " + type.getSimpleName());
+			final EntityTransaction transaction = entityManager.getTransaction();
+			transaction.begin();
 			entityManager.persist(entity);
+			transaction.commit();
 		}
 		LOGGER.debug("end creating: " + EntityUtils.toStringPrimitives(entity));
 		return entity;

@@ -101,7 +101,7 @@ public class FileClient {
 		{
 			final String path = encodePath(pathArg);
 			LOGGER.debug("requesting GET@/" + path);
-			webClient.replacePath("/" + path.toLowerCase());
+			webClient.replacePath("/" + path);
 			webClient.resetQuery();
 			webClient.put(file);
 		}
