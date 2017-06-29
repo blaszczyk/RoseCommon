@@ -313,9 +313,16 @@ public class PersistenceController implements ModelController {
 	}
 	
 	@Override
-	public void close()
+	public void close() throws RoseException
 	{
-		entityManager.close();
+		try
+		{
+			entityManager.close();
+		}
+		catch(Exception e)
+		{
+			throw RoseException.wrap(e, "Error closing EntityManager");
+		}
 	}
 	
 	public List<?> listQuery( final String query ) throws RoseException

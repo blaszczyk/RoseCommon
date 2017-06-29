@@ -27,6 +27,6 @@ public interface ModelController
 
 	public void delete(final Writable entity) throws RoseException;
 
-	public void close();
+	public void close() throws RoseException;
 	
 }

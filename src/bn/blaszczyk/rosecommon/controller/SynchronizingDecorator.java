@@ -97,7 +97,7 @@ public class SynchronizingDecorator implements ModelController {
 	}
 	
 	@Override
-	public void close()
+	public void close() throws RoseException
 	{
 		synchronized (controller)
 		{

@@ -70,7 +70,7 @@ public abstract class AbstractControllerDecorator implements ModelController {
 	}
 	
 	@Override
-	public void close()
+	public void close() throws RoseException
 	{
 		controller.close();
 	}
