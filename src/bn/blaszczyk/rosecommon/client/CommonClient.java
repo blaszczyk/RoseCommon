@@ -5,6 +5,8 @@ import java.net.URLEncoder;
 import java.util.Collections;
 import java.util.Map;
 
+import javax.ws.rs.core.Response;
+
 import org.apache.cxf.jaxrs.client.WebClient;
 import org.apache.logging.log4j.*;
 
@@ -60,10 +62,14 @@ public class CommonClient {
 			setPath(path);
 			for(final Map.Entry<String, Object[]> query : queries.entrySet())
 				webClient.query(query.getKey(), query.getValue());
-			final String encodedResponse = webClient.get(String.class);
-			final String response = URLDecoder.decode(encodedResponse, CODING_CHARSET);
-			LOGGER.debug("decoded response message:\r\n" + response);
-			return response;
+			final Response response = webClient.get();
+			final int status = response.getStatus();
+			final String encodedResponse = response.readEntity(String.class);
+			if(status >= 300)
+				throw new RoseException(encodedResponse);
+			final String responseString = URLDecoder.decode(encodedResponse, CODING_CHARSET);
+			LOGGER.debug("decoded response message:\r\n" + responseString);
+			return responseString;
 		}
 		catch (Exception e)
 		{
@@ -86,12 +92,16 @@ public class CommonClient {
 				webClient.query(query.getKey(), query.getValue());
 			LOGGER.debug("decoded request message:\r\n" + request);
 			final String encodedRequest = URLEncoder.encode(request, CODING_CHARSET);
-			final String encodedResponse = webClient.post(encodedRequest,String.class);
+			final Response response = webClient.post(encodedRequest);
+			final int status = response.getStatus();
+			final String encodedResponse = response.readEntity(String.class);
+			if(status >= 300)
+				throw new RoseException(encodedResponse);
 			if(encodedResponse == null)
 				return "";
-			final String response = URLDecoder.decode(encodedResponse, CODING_CHARSET);
-			LOGGER.debug("decoded response message:\r\n" + response);
-			return response;
+			final String responseString = URLDecoder.decode(encodedResponse, CODING_CHARSET);
+			LOGGER.debug("decoded response message:\r\n" + responseString);
+			return responseString;
 		}
 		catch(Exception e)
 		{
@@ -114,7 +124,11 @@ public class CommonClient {
 				webClient.query(query.getKey(), query.getValue());
 			LOGGER.debug("decoded request message:\r\n" + request);
 			final String encodedRequest = URLEncoder.encode(request, CODING_CHARSET);
-			webClient.put(encodedRequest);
+			final Response response = webClient.put(encodedRequest);
+			final int status = response.getStatus();
+			final String encodedResponse = response.readEntity(String.class);
+			if(status >= 300)
+				throw new RoseException(encodedResponse);
 		}
 		catch (Exception e)
 		{
@@ -135,7 +149,11 @@ public class CommonClient {
 			setPath(path);
 			for(final Map.Entry<String, Object[]> query : queries.entrySet())
 				webClient.query(query.getKey(), query.getValue());
-			webClient.delete();
+			final Response response = webClient.delete();
+			final int status = response.getStatus();
+			final String encodedResponse = response.readEntity(String.class);
+			if(status >= 300)
+				throw new RoseException(encodedResponse);
 		}
 		catch (Exception e) 
 		{

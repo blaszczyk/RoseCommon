@@ -7,6 +7,8 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 
+import javax.ws.rs.core.Response;
+
 import org.apache.cxf.jaxrs.client.WebClient;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -60,12 +62,15 @@ public class FileClient {
 		{
 			final String path = encodePath(pathArg);
 			LOGGER.debug("requesting GET@/" + path + "?exists");
-			webClient.replacePath("/" + path.toLowerCase());
+			webClient.replacePath("/" + path);
 			webClient.resetQuery();
 			webClient.query("exists","void");
-			final String response = webClient.get(String.class);
-			LOGGER.debug("response message:\r\n" + response);
-			return Boolean.parseBoolean(response);
+			final Response response = webClient.get();
+			final String responseString = response.readEntity(String.class);
+			if(response.getStatus() >= 300)
+				throw new RoseException(responseString);
+			LOGGER.debug("response message:\r\n" + responseString);
+			return Boolean.parseBoolean(responseString);
 		}
 		catch(final Exception e)
 		{
@@ -79,9 +84,14 @@ public class FileClient {
 		{
 			final String path = encodePath(pathArg);
 			LOGGER.debug("requesting GET@/" + path);
-			webClient.replacePath("/" + path.toLowerCase());
+			webClient.replacePath("/" + path);
 			webClient.resetQuery();
-			final InputStream inputStream = webClient.get(InputStream.class);
+			final Response response = webClient.get();
+			if(response.getStatus() >= 300)
+				throw new RoseException(response.readEntity(String.class));
+			final InputStream inputStream = response.readEntity(InputStream.class);
+			if(!file.getParentFile().exists())
+				file.getParentFile().mkdirs();
 			Files.copy(inputStream, file.toPath(), StandardCopyOption.REPLACE_EXISTING);
 		}
 		catch(final Exception e)
@@ -103,7 +113,9 @@ public class FileClient {
 			LOGGER.debug("requesting GET@/" + path);
 			webClient.replacePath("/" + path);
 			webClient.resetQuery();
-			webClient.put(file);
+			final Response response = webClient.put(file);
+			if(response.getStatus() >= 300)
+				throw new RoseException(response.readEntity(String.class));
 		}
 		catch(final Exception e)
 		{
