@@ -36,19 +36,14 @@ public class PersistenceController implements ModelController {
 
 	public PersistenceController() throws RoseException
 	{
-		final String dburl = getStringValue(DB_HOST);
-		final String dbport = getStringValue(DB_PORT);
-		final String dbname = getStringValue(DB_NAME);
-		final String dbuser = getStringValue(DB_USER);
-		final String dbpassword = getStringValue(DB_PASSWORD);
 		
 		final Map<String, String> properties = new HashMap<>();
-		if(dburl != null && dbport != null && dbname != null)
-			properties.put(KEY_URL, String.format("jdbc:mysql://%s:%s/%s",dburl,dbport,dbname));
-		if(dbuser != null)
-			properties.put(KEY_USER, dbuser);
-		if(dbpassword != null)
-			properties.put(KEY_PW, dbpassword);
+		if(!isDefault(DB_HOST) && !isDefault(DB_PORT) && !isDefault(DB_NAME))
+			properties.put(KEY_URL, String.format("jdbc:mysql://%s:%s/%s",getStringValue(DB_HOST),getStringValue(DB_PORT), getStringValue(DB_NAME)));
+		if(!isDefault(DB_USER))
+			properties.put(KEY_USER, getStringValue(DB_USER));
+		if(!isDefault(DB_PASSWORD))
+			properties.put(KEY_PW, getStringValue(DB_PASSWORD));
 		
 		try
 		{
@@ -219,6 +214,8 @@ public class PersistenceController implements ModelController {
 			synchronized (entityManager)
 			{
 				LOGGER.debug("start update");
+				final EntityTransaction transaction = entityManager.getTransaction();
+				transaction.begin();
 				for(Writable entity : entities)
 				{
 					if(entity == null)
@@ -233,6 +230,7 @@ public class PersistenceController implements ModelController {
 						entityManager.merge(entity);
 					}
 				}
+				transaction.commit();
 				LOGGER.debug("end update");
 			}
 		}

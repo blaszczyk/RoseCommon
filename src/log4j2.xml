@@ -9,11 +9,12 @@
     </Console>
   </Appenders>
   <Loggers>
-    <Logger name="org.apache.log4j.xml" level="debug">
+    <Logger name="bn.blaszczyk" level="debug">
       <AppenderRef ref="FILE"/>
     </Logger>
     <Root level="info">
       <AppenderRef ref="STDOUT"/>
+      <AppenderRef ref="FILE"/>
     </Root>
   </Loggers>
 </Configuration>

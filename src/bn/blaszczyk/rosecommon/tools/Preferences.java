@@ -130,6 +130,12 @@ public class Preferences {
 		}
 	}
 
+	public static boolean isDefault(final Preference preference)
+	{
+		final Object o = getValue(preference);
+		return o == preference.getDefaultValue();
+	}
+
 	public static String getStringValue( final Preference preference )
 	{
 		if(preference.needsCaching() &&  PREFS_CACHE.containsKey(preference))
