@@ -6,12 +6,12 @@ import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.EntityTransaction;
 import javax.persistence.Persistence;
+import javax.persistence.Query;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Root;
 
 import org.apache.logging.log4j.*;
-import org.hibernate.Session;
 
 import bn.blaszczyk.rose.model.Readable;
 import bn.blaszczyk.rose.model.Writable;
@@ -52,8 +52,8 @@ public class PersistenceController implements ModelController {
 		{
 			final EntityManagerFactory entityManagerFactory = Persistence.createEntityManagerFactory("rosePersistenceUnit", properties);
 			entityManager = entityManagerFactory.createEntityManager();
-			checkDbConnectionThread = new Thread(() -> checkDbConnection(),"thread check db connection");
-//			checkDbConnectionThread.start();
+			checkDbConnectionThread = new Thread(() -> checkDbConnection(),"check-db-connection");
+			checkDbConnectionThread.start();
 		}
 		catch(Exception e)
 		{
@@ -64,15 +64,24 @@ public class PersistenceController implements ModelController {
 	
 	private void checkDbConnection()
 	{
-		final Session session = entityManager.unwrap(Session.class);
 		while(true)
 		{
 			try
 			{
 				Thread.sleep(10000);
-				LOGGER.info("checking DB connection " + (session.isConnected() ? " connected" : " disconnected"));
-				if(!session.isConnected())
-					session.reconnect(session.disconnect());
+				synchronized(entityManager)
+				{
+					final Query query = entityManager.createNativeQuery("SELECT 1");
+					try
+					{
+						query.getSingleResult();
+						LOGGER.debug("pinging database");
+					}
+					catch(Exception e)
+					{
+						LOGGER.error("database ping unsucessful",e);
+					}
+				}
 			}
 			catch (InterruptedException e)
 			{
