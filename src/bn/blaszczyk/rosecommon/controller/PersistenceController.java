@@ -11,6 +11,7 @@ import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Root;
 
 import org.apache.logging.log4j.*;
+import org.hibernate.Session;
 
 import bn.blaszczyk.rose.model.Readable;
 import bn.blaszczyk.rose.model.Writable;
@@ -33,6 +34,8 @@ public class PersistenceController implements ModelController {
 	private static final String TIMESTAMP = "timestamp";
 	
 	private final EntityManager entityManager;
+	
+	private final Thread checkDbConnectionThread;
 
 	public PersistenceController() throws RoseException
 	{
@@ -49,12 +52,34 @@ public class PersistenceController implements ModelController {
 		{
 			final EntityManagerFactory entityManagerFactory = Persistence.createEntityManagerFactory("rosePersistenceUnit", properties);
 			entityManager = entityManagerFactory.createEntityManager();
+			checkDbConnectionThread = new Thread(() -> checkDbConnection(),"thread check db connection");
+//			checkDbConnectionThread.start();
 		}
 		catch(Exception e)
 		{
 			throw RoseException.wrap(e, "Error initializing PersistenceController");
 		}
 		
+	}
+	
+	private void checkDbConnection()
+	{
+		final Session session = entityManager.unwrap(Session.class);
+		while(true)
+		{
+			try
+			{
+				Thread.sleep(10000);
+				LOGGER.info("checking DB connection " + (session.isConnected() ? " connected" : " disconnected"));
+				if(!session.isConnected())
+					session.reconnect(session.disconnect());
+			}
+			catch (InterruptedException e)
+			{
+				LOGGER.warn("terminating check DB connection thread", e);
+				break;
+			}
+		}
 	}
 
 	@Override
@@ -320,6 +345,7 @@ public class PersistenceController implements ModelController {
 		try
 		{
 			entityManager.close();
+			checkDbConnectionThread.interrupt();
 		}
 		catch(Exception e)
 		{
