@@ -6,6 +6,7 @@ import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.EntityTransaction;
 import javax.persistence.Persistence;
+import javax.persistence.Query;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Root;
@@ -15,6 +16,7 @@ import org.apache.logging.log4j.*;
 import bn.blaszczyk.rose.model.Readable;
 import bn.blaszczyk.rose.model.Writable;
 import bn.blaszczyk.rosecommon.RoseException;
+import bn.blaszczyk.rosecommon.tools.CommonPreference;
 import bn.blaszczyk.rosecommon.tools.EntityUtils;
 import bn.blaszczyk.rosecommon.tools.TypeManager;
 
@@ -33,6 +35,8 @@ public class PersistenceController implements ModelController {
 	private static final String TIMESTAMP = "timestamp";
 	
 	private final EntityManager entityManager;
+	
+	private final Thread checkDbConnectionThread;
 
 	public PersistenceController() throws RoseException
 	{
@@ -49,12 +53,44 @@ public class PersistenceController implements ModelController {
 		{
 			final EntityManagerFactory entityManagerFactory = Persistence.createEntityManagerFactory("rosePersistenceUnit", properties);
 			entityManager = entityManagerFactory.createEntityManager();
+			checkDbConnectionThread = new Thread(() -> checkDbConnection(),"check-db-connection");
+			checkDbConnectionThread.start();
 		}
 		catch(Exception e)
 		{
 			throw RoseException.wrap(e, "Error initializing PersistenceController");
 		}
-		
+
+	}
+	
+	private void checkDbConnection()
+	{
+		final int pingDbInterval = getIntegerValue(CommonPreference.DB_PING_INTERVAL);
+		while(true)
+		{
+			try
+			{
+				Thread.sleep(pingDbInterval);
+				synchronized(entityManager)
+				{
+					final Query query = entityManager.createNativeQuery("SELECT 1");
+					try
+					{
+						LOGGER.debug("pinging database");
+						query.getSingleResult();
+					}
+					catch(Exception e)
+					{
+						LOGGER.error("database ping unsucessful",e);
+					}
+				}
+			}
+			catch (InterruptedException e)
+			{
+				LOGGER.warn("terminating check DB connection thread", e);
+				break;
+			}
+		}
 	}
 
 	@Override
@@ -320,6 +356,7 @@ public class PersistenceController implements ModelController {
 		try
 		{
 			entityManager.close();
+			checkDbConnectionThread.interrupt();
 		}
 		catch(Exception e)
 		{
@@ -345,33 +382,5 @@ public class PersistenceController implements ModelController {
 			throw new RoseException("Unable to execute query '" + query + "'", e);
 		}
 	}
-
-	//TODO: refactor to something useful
-//	private void checkConnection()
-//	{
-//		if(sessionLocked())
-//			return;
-//		String message;
-//		boolean wasConnected = connected;
-//		if(session instanceof SessionImpl)
-//		{
-//			try
-//			{
-//				connected = ((SessionImpl)session).connection().isValid(10);
-//			}
-//			catch (Exception | SQLException e1)
-//			{
-//				if(wasConnected)
-//				{
-//					LOGGER.error("no connection to " + dbFullUrl, e1);
-//				}
-//				connected = false;
-//			}
-//			message =  connected ? "connected" : "disconnected" ;
-//		}
-//		else
-//			message = "unknown";
-//		LOGGER.debug(dbMessage + " - " + message);
-//	}
 	
 }
