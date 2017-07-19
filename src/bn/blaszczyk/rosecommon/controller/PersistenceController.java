@@ -16,6 +16,7 @@ import org.apache.logging.log4j.*;
 import bn.blaszczyk.rose.model.Readable;
 import bn.blaszczyk.rose.model.Writable;
 import bn.blaszczyk.rosecommon.RoseException;
+import bn.blaszczyk.rosecommon.tools.CommonPreference;
 import bn.blaszczyk.rosecommon.tools.EntityUtils;
 import bn.blaszczyk.rosecommon.tools.TypeManager;
 
@@ -59,23 +60,24 @@ public class PersistenceController implements ModelController {
 		{
 			throw RoseException.wrap(e, "Error initializing PersistenceController");
 		}
-		
+
 	}
 	
 	private void checkDbConnection()
 	{
+		final int pingDbInterval = getIntegerValue(CommonPreference.DB_PING_INTERVAL);
 		while(true)
 		{
 			try
 			{
-				Thread.sleep(10000);
+				Thread.sleep(pingDbInterval);
 				synchronized(entityManager)
 				{
 					final Query query = entityManager.createNativeQuery("SELECT 1");
 					try
 					{
-						query.getSingleResult();
 						LOGGER.debug("pinging database");
+						query.getSingleResult();
 					}
 					catch(Exception e)
 					{
@@ -380,33 +382,5 @@ public class PersistenceController implements ModelController {
 			throw new RoseException("Unable to execute query '" + query + "'", e);
 		}
 	}
-
-	//TODO: refactor to something useful
-//	private void checkConnection()
-//	{
-//		if(sessionLocked())
-//			return;
-//		String message;
-//		boolean wasConnected = connected;
-//		if(session instanceof SessionImpl)
-//		{
-//			try
-//			{
-//				connected = ((SessionImpl)session).connection().isValid(10);
-//			}
-//			catch (Exception | SQLException e1)
-//			{
-//				if(wasConnected)
-//				{
-//					LOGGER.error("no connection to " + dbFullUrl, e1);
-//				}
-//				connected = false;
-//			}
-//			message =  connected ? "connected" : "disconnected" ;
-//		}
-//		else
-//			message = "unknown";
-//		LOGGER.debug(dbMessage + " - " + message);
-//	}
 	
 }

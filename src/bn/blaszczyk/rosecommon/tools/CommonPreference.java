@@ -12,6 +12,7 @@ public enum CommonPreference implements Preference {
 	DB_NAME(STRING,"dbname","myschema",true),
 	DB_USER(STRING,"dbuser","root",true),
 	DB_PASSWORD(STRING,"dbpassword","",true),
+	DB_PING_INTERVAL(INT,"dbpinginterval",10000),
 	
 	BASE_DIRECTORY(STRING,"basefolder","C:/temp"),
 	LOG_LEVEL(STRING,"loglevel","INFO"),
