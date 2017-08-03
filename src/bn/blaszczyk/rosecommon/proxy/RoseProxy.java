@@ -65,7 +65,7 @@ public class RoseProxy implements InvocationHandler {
 			((Timestamped)entity).setTimestamp(dto.getTimestamp());
 		
 		for(int i = 0; i < entity.getFieldCount(); i++)
-			setPrimitive(i, dto.getFieldValue(i));
+			setPrimitive(i, dto.getFieldValue(entity.getFieldName(i)));
 		for(int i = 0; i < entity.getEntityCount(); i++)
 			setEntityIds(i, dto);
 		checkAllFetched();
@@ -95,17 +95,18 @@ public class RoseProxy implements InvocationHandler {
 	private void setEntityIds(final int index, final RoseDto dto)
 	{
 		final List<Integer> ids;
+		final String fieldName = entityModel.getEntityFields().get(index).getName();
 		if(entity.getRelationType(index).isSecondMany())
 		{
-			ids = dto.getEntityIds(index);
+			ids = dto.getEntityIds(fieldName);
 			if(ids.isEmpty())
 				fetched[index] = true;
 		}
 		else
 		{
-			if(dto.getEntityId(index) < 0)
+			if(dto.getEntityId(fieldName) < 0)
 				fetched[index] = true;
-			ids = Collections.singletonList(dto.getEntityId(index));
+			ids = Collections.singletonList(dto.getEntityId(fieldName));
 		}
 		allIds.add(index, ids);
 	}
