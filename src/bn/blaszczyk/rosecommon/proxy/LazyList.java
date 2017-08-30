@@ -12,8 +12,8 @@ import java.util.stream.Stream;
 
 import org.apache.logging.log4j.*;
 
+import bn.blaszczyk.rose.RoseException;
 import bn.blaszczyk.rose.model.Readable;
-import bn.blaszczyk.rosecommon.RoseException;
 
 public class LazyList<T extends Readable> implements List<T> 
 {

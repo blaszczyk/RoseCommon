@@ -1,9 +1,8 @@
 package bn.blaszczyk.rosecommon.proxy;
 
-import bn.blaszczyk.rosecommon.RoseException;
-
 import java.util.List;
 
+import bn.blaszczyk.rose.RoseException;
 import bn.blaszczyk.rose.model.Readable;
 
 public interface EntityAccess {

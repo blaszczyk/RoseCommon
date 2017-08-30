@@ -3,12 +3,12 @@ package bn.blaszczyk.rosecommon.tools;
 import java.math.BigDecimal;
 import java.util.Set;
 
+import bn.blaszczyk.rose.RoseException;
 import bn.blaszczyk.rose.model.EnumField;
 import bn.blaszczyk.rose.model.Field;
 import bn.blaszczyk.rose.model.Identifyable;
 import bn.blaszczyk.rose.model.PrimitiveField;
 import bn.blaszczyk.rose.model.Readable;
-import bn.blaszczyk.rosecommon.RoseException;
 import bn.blaszczyk.rosecommon.dto.RoseDto;
 
 public final class EntityUtils {

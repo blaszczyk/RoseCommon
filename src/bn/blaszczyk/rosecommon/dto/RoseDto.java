@@ -16,9 +16,9 @@ import java.util.regex.Pattern;
 import com.google.gson.Gson;
 import com.google.gson.internal.StringMap;
 
+import bn.blaszczyk.rose.RoseException;
 import bn.blaszczyk.rose.model.Readable;
 import bn.blaszczyk.rose.model.Timestamped;
-import bn.blaszczyk.rosecommon.RoseException;
 import bn.blaszczyk.rosecommon.tools.TypeManager;
 
 public class RoseDto extends LinkedHashMap<String, String>{

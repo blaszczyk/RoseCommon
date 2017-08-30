@@ -8,10 +8,10 @@ import java.util.Map;
 
 import org.apache.logging.log4j.*;
 
+import bn.blaszczyk.rose.RoseException;
 import bn.blaszczyk.rose.model.*;
 import bn.blaszczyk.rose.model.Readable;
-import bn.blaszczyk.rose.parser.ModelProvidingNonCreatingRoseParser;
-import bn.blaszczyk.rosecommon.RoseException;
+import bn.blaszczyk.rose.parser.RoseParser;
 
 public class TypeManager {
 	
@@ -27,12 +27,12 @@ public class TypeManager {
 	{
 	}
 	
-	public static void parseRoseFile(final InputStream stream)
+	public static void parseRoseFile(final InputStream stream) throws RoseException
 	{
 		
-		ModelProvidingNonCreatingRoseParser parser = new ModelProvidingNonCreatingRoseParser(stream);
+		final RoseParser parser = new RoseParser(stream);
 		parser.parse();
-		for(Entity e : parser.getEntities())
+		for(final Entity e : parser.getEntities())
 		{
 			entites.put(e.getSimpleClassName(), e);
 			try

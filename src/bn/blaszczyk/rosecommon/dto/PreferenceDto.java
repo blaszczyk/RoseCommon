@@ -9,7 +9,7 @@ import java.util.Map;
 
 import com.google.gson.internal.StringMap;
 
-import bn.blaszczyk.rosecommon.RoseException;
+import bn.blaszczyk.rose.RoseException;
 import bn.blaszczyk.rosecommon.tools.Preference;
 
 public class PreferenceDto extends LinkedHashMap<String, String>{

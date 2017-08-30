@@ -2,9 +2,9 @@ package bn.blaszczyk.rosecommon.controller;
 
 import java.util.List;
 
+import bn.blaszczyk.rose.RoseException;
 import bn.blaszczyk.rose.model.Readable;
 import bn.blaszczyk.rose.model.Writable;
-import bn.blaszczyk.rosecommon.RoseException;
 
 public abstract class AbstractControllerDecorator implements ModelController {
 

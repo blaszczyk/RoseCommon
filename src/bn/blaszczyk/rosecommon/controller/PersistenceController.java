@@ -13,9 +13,9 @@ import javax.persistence.criteria.Root;
 
 import org.apache.logging.log4j.*;
 
+import bn.blaszczyk.rose.RoseException;
 import bn.blaszczyk.rose.model.Readable;
 import bn.blaszczyk.rose.model.Writable;
-import bn.blaszczyk.rosecommon.RoseException;
 import bn.blaszczyk.rosecommon.tools.CommonPreference;
 import bn.blaszczyk.rosecommon.tools.EntityUtils;
 import bn.blaszczyk.rosecommon.tools.TypeManager;
@@ -60,7 +60,6 @@ public class PersistenceController implements ModelController {
 		{
 			throw RoseException.wrap(e, "Error initializing PersistenceController");
 		}
-
 	}
 	
 	private void checkDbConnection()

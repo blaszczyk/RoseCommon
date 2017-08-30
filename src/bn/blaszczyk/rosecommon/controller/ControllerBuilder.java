@@ -1,6 +1,6 @@
 package bn.blaszczyk.rosecommon.controller;
 
-import bn.blaszczyk.rosecommon.RoseException;
+import bn.blaszczyk.rose.RoseException;
 
 public class ControllerBuilder {
 	

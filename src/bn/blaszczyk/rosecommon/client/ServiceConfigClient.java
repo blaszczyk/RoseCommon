@@ -6,7 +6,7 @@ import java.util.stream.Collectors;
 import com.google.gson.Gson;
 import com.google.gson.internal.StringMap;
 
-import bn.blaszczyk.rosecommon.RoseException;
+import bn.blaszczyk.rose.RoseException;
 import bn.blaszczyk.rosecommon.dto.PreferenceDto;
 import bn.blaszczyk.rosecommon.tools.CommonPreference;
 import bn.blaszczyk.rosecommon.tools.Preferences;
