@@ -12,7 +12,7 @@ import java.util.List;
 import org.apache.logging.log4j.*;
 
 import bn.blaszczyk.rose.RoseException;
-import bn.blaszczyk.rose.model.Entity;
+import bn.blaszczyk.rose.model.EntityModel;
 import bn.blaszczyk.rose.model.EntityField;
 import bn.blaszczyk.rose.model.Field;
 import bn.blaszczyk.rose.model.Writable;
@@ -40,7 +40,7 @@ public class RoseProxy implements InvocationHandler {
 
 	private final EntityAccess access;
 
-	private final Entity entityModel;
+	private final EntityModel entityModel;
 	private final Class<? extends Representable> type;
 	
 	private final Representable entity;
@@ -53,7 +53,7 @@ public class RoseProxy implements InvocationHandler {
 	{
 		this.access = access;
 		entity = (Representable) TypeManager.newInstance(dto.getType());
-		entityModel = TypeManager.getEntity(entity);
+		entityModel = TypeManager.getEntityModel(entity);
 		type = entity.getClass();
 		
 		fetched = new boolean[entity.getEntityCount()];
@@ -158,7 +158,7 @@ public class RoseProxy implements InvocationHandler {
 	private void fetch(final int index, final Representable proxy)
 	{
 		final EntityField field = entityModel.getEntityFields().get(index);
-		final Class<? extends Readable> type = TypeManager.getClass(field.getEntity());
+		final Class<? extends Readable> type = TypeManager.getClass(field.getEntityModel());
 		final List<Integer> ids = allIds.get(index);
 		try
 		{

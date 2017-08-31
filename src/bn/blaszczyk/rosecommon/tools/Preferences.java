@@ -13,7 +13,7 @@ import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.*;
 
-import bn.blaszczyk.rose.model.Entity;
+import bn.blaszczyk.rose.model.EntityModel;
 import bn.blaszczyk.rose.model.Readable;
 
 public class Preferences {
@@ -217,9 +217,9 @@ public class Preferences {
 		return getStringEntityValue(entity.getClass(), preference );
 	}
 	
-	public static String getStringEntityValue(Entity entity, final Preference preference )
+	public static String getStringEntityValue(EntityModel entityModel, final Preference preference )
 	{
-		return getStringEntityValue(TypeManager.getClass(entity), preference );
+		return getStringEntityValue(TypeManager.getClass(entityModel), preference );
 	}
 	
 	public static void putStringEntityValue(Class<? extends Readable> type, final Preference preference, final String value)
@@ -233,9 +233,9 @@ public class Preferences {
 		putStringEntityValue(entity.getClass(), preference, value);
 	}
 	
-	public static void putStringEntityValue(Entity entity, final Preference preference, final String value)
+	public static void putStringEntityValue(EntityModel entityModel, final Preference preference, final String value)
 	{
-		putStringEntityValue(TypeManager.getClass(entity), preference, value);
+		putStringEntityValue(TypeManager.getClass(entityModel), preference, value);
 	}
 	
 	public static boolean getBooleanEntityValue(Class<? extends Readable> type, final Preference preference )
@@ -250,9 +250,9 @@ public class Preferences {
 		return getBooleanEntityValue(entity.getClass(), preference );
 	}
 	
-	public static boolean getBooleanEntityValue(Entity entity, final Preference preference )
+	public static boolean getBooleanEntityValue(EntityModel entityModel, final Preference preference )
 	{
-		return getBooleanEntityValue(TypeManager.getClass(entity), preference );
+		return getBooleanEntityValue(TypeManager.getClass(entityModel), preference );
 	}
 	
 	public static void putBooleanEntityValue(Class<? extends Readable> type, final Preference preference, final boolean value)
@@ -266,9 +266,9 @@ public class Preferences {
 		putBooleanEntityValue(entity.getClass(), preference, value);
 	}
 	
-	public static void putBooleanEntityValue(Entity entity, final Preference preference, final boolean value)
+	public static void putBooleanEntityValue(EntityModel entityModel, final Preference preference, final boolean value)
 	{
-		putBooleanEntityValue(TypeManager.getClass(entity), preference, value);
+		putBooleanEntityValue(TypeManager.getClass(entityModel), preference, value);
 	}
 	
 	public static int getIntegerEntityValue(Class<? extends Readable> type, final Preference preference )
@@ -283,9 +283,9 @@ public class Preferences {
 		return getIntegerEntityValue(entity.getClass(), preference);
 	}
 	
-	public static int getIntegerEntityValue(Entity entity, final Preference preference )
+	public static int getIntegerEntityValue(EntityModel entityModel, final Preference preference )
 	{
-		return getIntegerEntityValue(TypeManager.getClass(entity), preference);
+		return getIntegerEntityValue(TypeManager.getClass(entityModel), preference);
 	}
 	
 	public static void putIntegerEntityValue(Class<? extends Readable> type, final Preference preference, final int value)
@@ -299,9 +299,9 @@ public class Preferences {
 		putIntegerEntityValue(entity.getClass(), preference, value);
 	}
 	
-	public static void putIntegerEntityValue(Entity entity, final Preference preference, final int value)
+	public static void putIntegerEntityValue(EntityModel entityModel, final Preference preference, final int value)
 	{
-		putIntegerEntityValue(TypeManager.getClass(entity), preference, value);
+		putIntegerEntityValue(TypeManager.getClass(entityModel), preference, value);
 	}
 
 	private static BigDecimal parseBigDecimal(final String stringValue, final BigDecimal defaultValue)

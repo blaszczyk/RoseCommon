@@ -20,8 +20,8 @@ public class TypeManager {
 	private final static Map<String, Class<? extends Readable>> entityClasses = new HashMap<>();
 	private final static Map<String, Class<? extends Readable>> implClasses = new HashMap<>();
 	private final static Map<String, Class<?>> enumClasses = new HashMap<>();
-	private final static Map<String,Entity> entites = new HashMap<>();
-	private final static Map<String,EnumType> enums = new HashMap<>();
+	private final static Map<String,EntityModel> entityModels = new HashMap<>();
+	private final static Map<String,EnumModel> enumModels = new HashMap<>();
 	
 	private TypeManager()
 	{
@@ -29,76 +29,77 @@ public class TypeManager {
 	
 	public static void parseRoseFile(final InputStream stream) throws RoseException
 	{
-		
 		final RoseParser parser = new RoseParser(stream);
 		parser.parse();
-		for(final Entity e : parser.getEntities())
+		for(final EntityModel entity : parser.getEntities())
 		{
-			entites.put(e.getSimpleClassName(), e);
+			entityModels.put(entity.getSimpleClassName(), entity);
 			try
 			{
-				entityClasses.put(e.getSimpleClassName().toLowerCase(), Class.forName(e.getClassName()).asSubclass(Readable.class));
-				implClasses.put(e.getSimpleClassName().toLowerCase(), Class.forName(e.getClassName() + "Impl").asSubclass(Readable.class));
-				LOGGER.info( "load entity class " + e.getClassName());
+				entityClasses.put(entity.getSimpleClassName().toLowerCase(), Class.forName(entity.getClassName()).asSubclass(Readable.class));
+				implClasses.put(entity.getSimpleClassName().toLowerCase(), Class.forName(entity.getClassName() + "Impl").asSubclass(Readable.class));
+				LOGGER.info( "load entity class " + entity.getClassName());
 			}
-			catch (ClassNotFoundException e1)
+			catch (ClassNotFoundException e)
 			{
-				LOGGER.error("unable to load entity class " + e.getClassName(), e1);
+				LOGGER.error("unable to load entity class " + entity.getClassName(), e);
+				throw new RoseException("error loading classes for " + entity.getSimpleClassName(), e);
 			}
 		}
-		for(EnumType e : parser.getEnums())
+		for(EnumModel enumModel : parser.getEnums())
 		{
-			enums.put(e.getSimpleClassName(), e);
+			enumModels.put(enumModel.getSimpleClassName(), enumModel);
 			try
 			{
-				Class<?> enumClass = Class.forName(e.getClassName());
-				enumClasses.put(e.getSimpleClassName().toLowerCase(), enumClass );
-				LOGGER.info( "load enum class " + e.getClassName());
+				Class<?> enumClass = Class.forName(enumModel.getClassName());
+				enumClasses.put(enumModel.getSimpleClassName().toLowerCase(), enumClass );
+				LOGGER.info( "load enum class " + enumModel.getClassName());
 			}
-			catch (ClassNotFoundException e1)
+			catch (ClassNotFoundException e)
 			{
-				LOGGER.error("unable to load enum class " + e.getClassName(), e1);
+				LOGGER.error("unable to load enum class " + enumModel.getClassName(), e);
+				throw new RoseException("error loading class for " + enumModel.getSimpleClassName(), e);
 			}
 		}
 	}
 	
-	public static Entity getEntity(Class<? extends Readable> type)
+	public static EntityModel getEntityModel(Class<? extends Readable> type)
 	{
-		return getEntity(convertType(type).getSimpleName());
+		return getEntityModel(convertType(type).getSimpleName());
 	}
 	
-	public static Entity getEntity(String name)
+	public static EntityModel getEntityModel(String name)
 	{
-		return entites.get(name);
+		return entityModels.get(name);
 	}
 	
-	public static Entity getEntity( Readable entity )
+	public static EntityModel getEntityModel( Readable entity )
 	{
 		if(entity == null)
 			return null;
-		return getEntity( entity.getClass() );
+		return getEntityModel( entity.getClass() );
 	}
 	
-	public static EnumType getEnum( Class<?> type )
+	public static EnumModel getEnumModel( Class<?> type )
 	{
-		return enums.get(type.getSimpleName());
+		return enumModels.get(type.getSimpleName());
 	}
 	
-	public static EnumType getEnum( Enum<?> enumOption )
+	public static EnumModel getEnumModel( Enum<?> enumOption )
 	{
 		if(enumOption == null)
 			return null;
-		return getEnum(enumOption.getClass());
+		return getEnumModel(enumOption.getClass());
 	}
 	
-	public static Class<? extends Readable> getClass( Entity entity )
+	public static Class<? extends Readable> getClass( EntityModel entityModel )
 	{
-		return entityClasses.get(entity.getSimpleClassName().toLowerCase());
+		return entityClasses.get(entityModel.getSimpleClassName().toLowerCase());
 	}
 	
-	public static Class<?> getClass( EnumType enumType )
+	public static Class<?> getClass( EnumModel enumModel )
 	{
-		return enumClasses.get(enumType.getSimpleClassName().toLowerCase());
+		return enumClasses.get(enumModel.getSimpleClassName().toLowerCase());
 	}
 	
 	public static Collection<Class<? extends Readable>> getEntityClasses()
@@ -106,14 +107,14 @@ public class TypeManager {
 		return entityClasses.values();
 	}
 
-	public static Collection<Entity> getEntites()
+	public static Collection<EntityModel> getEntityModels()
 	{
-		return entites.values();
+		return entityModels.values();
 	}
 
 	public static int getEntityCount()
 	{
-		return entites.size();
+		return entityModels.size();
 	}
 
 	public static Class<? extends Readable> getClass(String entityName)
