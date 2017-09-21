@@ -122,7 +122,7 @@ public class RoseDto extends LinkedHashMap<String, String>{
 	
 	public Integer getEntityId(final String fieldName)
 	{
-		final String id = get(fieldName);
+		final String id = get(fieldName.toLowerCase());
 		if(id == null)
 			return -1;
 		return Integer.parseInt(id);
@@ -130,7 +130,7 @@ public class RoseDto extends LinkedHashMap<String, String>{
 	
 	public List<Integer> getEntityIds(final String fieldName)
 	{
-		final String idsString = get(fieldName);
+		final String idsString = get(fieldName.toLowerCase());
 		if(idsString == null)
 			return Collections.emptyList();
 		final Integer[] ids = GSON.fromJson(idsString, Integer[].class);
