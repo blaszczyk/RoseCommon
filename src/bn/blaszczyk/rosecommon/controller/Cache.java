@@ -20,42 +20,53 @@ public class Cache
 	
 	public int count(final Class<? extends Readable> type)
 	{
-		return entities.get(TypeManager.convertType(type)).size();
+		return entities(type).size();
 	}
 	
 	public Stream<Readable> stream(final Class<? extends Readable> type)
 	{
-		return entities.get(TypeManager.convertType(type)).values().stream();
+		return entities(type).values().stream();
+	}
+
+	public Stream<Integer> ids(final Class<? extends Readable> type)
+	{
+		return entities(type).keySet().stream();
 	}
 	
 	public boolean has(final Class<? extends Readable> type, final Integer id)
 	{
-		return entities.get(TypeManager.convertType(type)).containsKey(id);
+		return entities(type).containsKey(id);
 	}
 
 	public boolean has(final Readable entity)
 	{
+		if(entity == null)
+			return false;
 		return has(entity.getClass(), entity.getId());
 	}
 	
 	public boolean hasExact(final Readable entity)
 	{
+		if(entity == null)
+			return false;
 		return entity == get(entity.getClass(), entity.getId());
 	}
 	
 	public Readable get(final Class<? extends Readable> type, final Integer id)
 	{
-		return entities.get(type).get(id);
+		return entities(type).get(id);
 	}
 	
 	public void put(final Readable entity)
 	{
-		entities.get(TypeManager.getClass(entity)).put(entity.getId(), entity);
+		if(entity == null)
+			return;
+		entities(entity.getClass()).put(entity.getId(), entity);
 	}
 	
 	public void remove(final Class<? extends Readable> type, final Integer id)
 	{
-		entities.get(TypeManager.convertType(type)).remove(id);
+		entities(type).remove(id);
 	}
 	
 	public void remove(final Readable entity)
@@ -66,6 +77,11 @@ public class Cache
 	public void clear()
 	{
 		entities.values().forEach(Map::clear);
+	}
+
+	private Map<Integer, Readable> entities(final Class<? extends Readable> type)
+	{
+		return entities.get(TypeManager.convertType(type));
 	}
 	
 }

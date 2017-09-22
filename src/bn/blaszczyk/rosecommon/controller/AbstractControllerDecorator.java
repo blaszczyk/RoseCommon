@@ -6,16 +6,17 @@ import bn.blaszczyk.rose.RoseException;
 import bn.blaszczyk.rose.model.Readable;
 import bn.blaszczyk.rose.model.Writable;
 
-public abstract class AbstractControllerDecorator implements ModelController {
+abstract class AbstractControllerDecorator implements ModelController
+{
 
-	protected final ModelController controller;
+	final ModelController controller;
 	
-	public AbstractControllerDecorator(final ModelController controller)
+	AbstractControllerDecorator(final ModelController controller)
 	{
 		this.controller = controller;
 	}
 	
-	public ModelController unwrap()
+	ModelController unwrap()
 	{
 		return controller;
 	}

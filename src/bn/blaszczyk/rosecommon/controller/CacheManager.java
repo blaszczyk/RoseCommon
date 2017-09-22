@@ -46,21 +46,21 @@ public class CacheManager
 		this.cache = controller.getCache();
 	}
 	
-	public void write(final Writer writer)
+	public void writeTo(final Writer writer)
 	{
-		LOGGER.info("start writing from cache");
+		LOGGER.debug("start writing from cache");
 		final RoseDto[] dtos = TypeManager.getEntityClasses()
-				.stream()
-				.flatMap(cache::stream)
-				.map(RoseDto::new)
-				.toArray(RoseDto[]::new);
+			.stream()
+			.flatMap(cache::stream)
+			.map(RoseDto::new)
+			.toArray(RoseDto[]::new);
 		GSON.toJson(dtos, writer);
-		LOGGER.info("done writing from cache");
+		LOGGER.debug("done writing from cache. #entities = " + dtos.length);
 	}
 	
-	public void read(final Reader reader) throws RoseException
+	public void readFrom(final Reader reader) throws RoseException
 	{
-		LOGGER.info("start reading into cache");
+		LOGGER.debug("start reading into cache");
 		final StringMap<?>[] maps = GSON.fromJson(reader, StringMap[].class);
 		for(final StringMap<?> map : maps)
 		{
@@ -68,7 +68,7 @@ public class CacheManager
 			final Readable entity = RoseProxy.create(dto, access);
 			cache.put(entity);
 		}
-		LOGGER.info("done reading into cache");
+		LOGGER.debug("done reading into cache. #entities = " + maps.length);
 	}
 	
 	public void clear()
