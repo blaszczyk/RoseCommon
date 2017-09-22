@@ -15,6 +15,11 @@ public abstract class AbstractControllerDecorator implements ModelController {
 		this.controller = controller;
 	}
 	
+	public ModelController unwrap()
+	{
+		return controller;
+	}
+	
 	@Override
 	public <T extends Readable> List<T> getEntities(final Class<T> type) throws RoseException
 	{
