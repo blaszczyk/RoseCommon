@@ -96,7 +96,7 @@ public class FileClient {
 		}
 		catch(final Exception e)
 		{
-			throw RoseException.wrap(e, "Error checking file existence of " + pathArg);
+			throw RoseException.wrap(e, "Error downloading " + pathArg);
 		}
 	}
 	
@@ -110,7 +110,7 @@ public class FileClient {
 		try
 		{
 			final String path = encodePath(pathArg);
-			LOGGER.debug("requesting GET@/" + path);
+			LOGGER.debug("requesting PUT@/" + path);
 			webClient.replacePath("/" + path);
 			webClient.resetQuery();
 			final Response response = webClient.put(file);
@@ -119,7 +119,7 @@ public class FileClient {
 		}
 		catch(final Exception e)
 		{
-			throw RoseException.wrap(e, "Error checking file existence of " + pathArg);
+			throw RoseException.wrap(e, "Error uploading " + pathArg);
 		}
 	}
 	
@@ -139,7 +139,6 @@ public class FileClient {
 			throw RoseException.wrap(e, "Error creating URL for " + path);
 		}
 	}
-
 
 	private static String encodePath(final String pathArg) throws RoseException
 	{

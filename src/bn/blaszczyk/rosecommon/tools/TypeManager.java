@@ -1,7 +1,6 @@
 
 package bn.blaszczyk.rosecommon.tools;
 
-import java.io.InputStream;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -27,9 +26,9 @@ public class TypeManager {
 	{
 	}
 	
-	public static void parseRoseFile(final InputStream stream) throws RoseException
+	public static void parseRoseFile(final String resource) throws RoseException
 	{
-		final RoseParser parser = new RoseParser(stream);
+		final RoseParser parser = RoseParser.forResources(resource);
 		parser.parse();
 		for(final EntityModel entity : parser.getEntities())
 		{
