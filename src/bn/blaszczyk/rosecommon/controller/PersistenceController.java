@@ -23,14 +23,14 @@ import bn.blaszczyk.rosecommon.tools.TypeManager;
 import static bn.blaszczyk.rosecommon.tools.Preferences.*;
 import static bn.blaszczyk.rosecommon.tools.CommonPreference.*;
 
-public class PersistenceController implements ModelController {
+final class PersistenceController implements ModelController
+{
+	public static final String KEY_URL = "javax.persistence.jdbc.url";
+	public static final String KEY_USER = "javax.persistence.jdbc.user";
+	public static final String KEY_PW = "javax.persistence.jdbc.password";
 	
 	private static final Logger LOGGER = LogManager.getLogger(PersistenceController.class);
 	private static final Calendar calendar = Calendar.getInstance();
-
-	private static final String KEY_URL = "javax.persistence.jdbc.url";
-	private static final String KEY_USER = "javax.persistence.jdbc.user";
-	private static final String KEY_PW = "javax.persistence.jdbc.password";
 
 	private static final String TIMESTAMP = "timestamp";
 	
@@ -38,17 +38,8 @@ public class PersistenceController implements ModelController {
 	
 	private final Thread checkDbConnectionThread;
 
-	public PersistenceController() throws RoseException
+	PersistenceController(final Map<String, String> properties) throws RoseException
 	{
-		
-		final Map<String, String> properties = new HashMap<>();
-		if(!isDefault(DB_HOST) && !isDefault(DB_PORT) && !isDefault(DB_NAME))
-			properties.put(KEY_URL, String.format("jdbc:mysql://%s:%s/%s",getStringValue(DB_HOST),getStringValue(DB_PORT), getStringValue(DB_NAME)));
-		if(!isDefault(DB_USER))
-			properties.put(KEY_USER, getStringValue(DB_USER));
-		if(!isDefault(DB_PASSWORD))
-			properties.put(KEY_PW, getStringValue(DB_PASSWORD));
-		
 		try
 		{
 			final EntityManagerFactory entityManagerFactory = Persistence.createEntityManagerFactory("rosePersistenceUnit", properties);
@@ -333,8 +324,6 @@ public class PersistenceController implements ModelController {
 			switch(copy.getRelationType(i))
 			{
 			case ONETOONE:
-//				Writable subCopy = createCopy( (Writable) copy.getEntityValue(i) );
-//				copy.setEntity( i, subCopy );
 				break;
 			case ONETOMANY:
 				for( Readable o : copy.getEntityValueMany(i) )

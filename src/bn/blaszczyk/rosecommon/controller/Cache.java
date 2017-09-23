@@ -18,53 +18,53 @@ public class Cache
 			entities.put(TypeManager.convertType(type), new TreeMap<>());
 	}
 	
-	public int count(final Class<? extends Readable> type)
+	public <T extends Readable> int count(final Class<T> type)
 	{
 		return entities(type).size();
 	}
 	
-	public Stream<Readable> stream(final Class<? extends Readable> type)
+	public <T extends Readable> Stream<T> stream(final Class<T> type)
 	{
 		return entities(type).values().stream();
 	}
 
-	public Stream<Integer> ids(final Class<? extends Readable> type)
+	public <T extends Readable> Stream<Integer> ids(final Class<T> type)
 	{
 		return entities(type).keySet().stream();
 	}
 	
-	public boolean has(final Class<? extends Readable> type, final Integer id)
+	public <T extends Readable> boolean has(final Class<T> type, final Integer id)
 	{
 		return entities(type).containsKey(id);
 	}
 
-	public boolean has(final Readable entity)
+	public <T extends Readable> boolean has(final T entity)
 	{
 		if(entity == null)
 			return false;
 		return has(entity.getClass(), entity.getId());
 	}
 	
-	public boolean hasExact(final Readable entity)
+	public <T extends Readable> boolean hasExact(final T entity)
 	{
 		if(entity == null)
 			return false;
 		return entity == get(entity.getClass(), entity.getId());
 	}
 	
-	public Readable get(final Class<? extends Readable> type, final Integer id)
+	public <T extends Readable> T get(final Class<T> type, final Integer id)
 	{
 		return entities(type).get(id);
 	}
 	
-	public void put(final Readable entity)
+	<T extends Readable> void put(final T entity)
 	{
 		if(entity == null)
 			return;
-		entities(entity.getClass()).put(entity.getId(), entity);
+		entities.get(TypeManager.getClass(entity)).put(entity.getId(), entity);
 	}
 	
-	public void remove(final Class<? extends Readable> type, final Integer id)
+	void remove(final Class<? extends Readable> type, final Integer id)
 	{
 		entities(type).remove(id);
 	}
@@ -79,9 +79,10 @@ public class Cache
 		entities.values().forEach(Map::clear);
 	}
 
-	private Map<Integer, Readable> entities(final Class<? extends Readable> type)
+	@SuppressWarnings("unchecked")
+	private <T extends Readable> Map<Integer, T> entities(final Class<T> type)
 	{
-		return entities.get(TypeManager.convertType(type));
+		return (Map<Integer, T>) entities.get(TypeManager.convertType(type));
 	}
 	
 }

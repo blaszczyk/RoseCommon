@@ -3,8 +3,6 @@ package bn.blaszczyk.rosecommon.controller;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import org.apache.logging.log4j.*;
-
 import bn.blaszczyk.rose.RoseException;
 import bn.blaszczyk.rose.model.Readable;
 import bn.blaszczyk.rose.model.Writable;
@@ -12,16 +10,14 @@ import bn.blaszczyk.rosecommon.proxy.EntityAccess;
 import bn.blaszczyk.rosecommon.proxy.LazyList;
 import bn.blaszczyk.rosecommon.tools.EntityUtils;
 
-public class CacheController extends AbstractControllerDecorator implements ModelController, EntityAccess
+final class CacheController extends AbstractControllerDecorator implements ModelController, EntityAccess
 {
-	
-	private static final Logger LOGGER = LogManager.getLogger(CacheController.class);
 
 	private Cache cache = new Cache();
 
 	private final Set<Class<? extends Readable>> fetchedTypes = new HashSet<>() ;
 
-	public CacheController(final ModelController controller)
+	CacheController(final ModelController controller)
 	{
 		super(controller);
 	}
@@ -43,7 +39,6 @@ public class CacheController extends AbstractControllerDecorator implements Mode
 			fetchedTypes.add(type);
 		}
 		return cache.stream(type)
-			.map(type::cast)
 			.collect(Collectors.toList());
 	}
 	
@@ -70,7 +65,7 @@ public class CacheController extends AbstractControllerDecorator implements Mode
 	{
 		if(!cache.has(type, id))
 			cacheOne(controller.getEntityById(type, id));
-		return type.cast(cache.get(type,id));
+		return cache.get(type,id);
 	}
 	
 	@Override
@@ -83,7 +78,6 @@ public class CacheController extends AbstractControllerDecorator implements Mode
 		cacheMany(fetchedEntities, type);
 		return ids.stream()
 			.map(id -> cache.get(type,id))
-			.map(type::cast)
 			.collect(Collectors.toList());
 	}
 
@@ -92,7 +86,6 @@ public class CacheController extends AbstractControllerDecorator implements Mode
 	{
 		final T entity = controller.createNew(type);
 		cacheOne(entity);
-		LOGGER.debug("caching new entity: " + EntityUtils.toStringSimple(entity));
 		return entity;
 	}
 
@@ -105,7 +98,7 @@ public class CacheController extends AbstractControllerDecorator implements Mode
 	}
 	
 	@Override
-	public void update(Writable... entities) throws RoseException
+	public void update(final Writable... entities) throws RoseException
 	{
 		for(final Writable entity : entities)
 			assertEqualsCached(entity);
@@ -113,11 +106,10 @@ public class CacheController extends AbstractControllerDecorator implements Mode
 	}
 
 	@Override
-	public void delete(Writable entity) throws RoseException
+	public void delete(final Writable entity) throws RoseException
 	{
 		assertEqualsCached(entity);
 		cache.remove(entity);
-		LOGGER.debug("removing entity from cache: " + EntityUtils.toStringSimple(entity));
 		controller.delete(entity);
 	}
 
@@ -136,18 +128,15 @@ public class CacheController extends AbstractControllerDecorator implements Mode
 	private void assertEqualsCached(final Readable entity) throws RoseException
 	{
 		if(!cache.hasExact(entity))
-			throw new RoseException("uncached entity: " + EntityUtils.toStringSimple(entity));		
+			throw new RoseException("uncached entity: " + EntityUtils.toStringSimple(entity));
 	}
 
-	private Readable cacheOne(final Readable entity)
+	private void cacheOne(final Readable entity) throws RoseException
 	{
 		if(cache.has(entity))
-		{
-			LOGGER.error("Trying to add entity with duplicate id: " + EntityUtils.toStringSimple(entity));
-			return cache.get(entity.getClass(), entity.getId());
-		}
-		cache.put(entity);
-		return entity;
+			throw new RoseException("attempting to cache duplicate entity: " + EntityUtils.toStringSimple(entity));
+		else
+			cache.put(entity);
 	}
 	
 	private void cacheMany(final List<? extends Readable> newEntities, final Class<? extends Readable> type) throws RoseException

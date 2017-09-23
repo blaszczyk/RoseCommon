@@ -12,20 +12,17 @@ import bn.blaszczyk.rosecommon.dto.RoseDto;
 import bn.blaszczyk.rosecommon.proxy.EntityAccess;
 import bn.blaszczyk.rosecommon.proxy.LazyList;
 import bn.blaszczyk.rosecommon.proxy.RoseProxy;
-import bn.blaszczyk.rosecommon.tools.CommonPreference;
-import bn.blaszczyk.rosecommon.tools.Preferences;
 import bn.blaszczyk.rosecommon.tools.TypeManager;
 
-public class RestController implements ModelController, EntityAccess {
+final class RestController implements ModelController, EntityAccess
+{
 	
 	private final RoseClient client;
 	private EntityAccess access = this;
 	private boolean usingLazyList = false;
 	
-	public RestController()
+	RestController(final String host, final int port)
 	{
-		final String host = Preferences.getStringValue(CommonPreference.SERVICE_HOST);
-		final int port = Preferences.getIntegerValue(CommonPreference.SERVICE_PORT);
 		this.client = new RoseClient(String.format("http://%s:%d",host,port));
 	}
 	
@@ -44,12 +41,12 @@ public class RestController implements ModelController, EntityAccess {
 	{
 		if(usingLazyList)
 		{
-			final List<Integer> ids = client.getIds(type.getSimpleName().toLowerCase());
+			final List<Integer> ids = client.getIds(pathFor(type));
 			return new LazyList<T>(type, ids, access);
 		}
 		else
 		{
-			final List<RoseDto> dtos = client.getDtos(type.getSimpleName());
+			final List<RoseDto> dtos = client.getDtos(pathFor(type));
 			return createProxys(dtos,type);
 		}
 	}
@@ -57,19 +54,20 @@ public class RestController implements ModelController, EntityAccess {
 	@Override
 	public <T extends Readable> List<Integer> getIds(final Class<T> type) throws RoseException
 	{
-		return client.getIds(type.getSimpleName().toLowerCase());
+		return client.getIds(pathFor(type));
 	}
 	
 	@Override
 	public <T extends Readable> int getEntityCount(final Class<T> type) throws RoseException
 	{
-		return client.getCount(type.getSimpleName().toLowerCase());
+		return client.getCount(pathFor(type));
 	}
 	
 	@Override
 	public <T extends Readable> T getEntityById(final Class<T> type, final int id) throws RoseException
 	{
-		return getOne(type, id);
+		final RoseDto dto = client.getDto(pathFor(type), id);
+		return type.cast(RoseProxy.create(dto, access));
 	}
 	
 	@Override
@@ -78,7 +76,10 @@ public class RestController implements ModelController, EntityAccess {
 		if(usingLazyList)
 			return new LazyList<T>(type, ids, access);
 		else
-			return getMany(type, ids);
+		{
+			final List<RoseDto> dtos = client.getDtos(pathFor(type), ids);
+			return createProxys(dtos,type);
+		}
 	}
 	
 	@Override
@@ -111,7 +112,7 @@ public class RestController implements ModelController, EntityAccess {
 	@Override
 	public void delete(final Writable entity) throws RoseException
 	{
-		client.deleteByID(entity.getEntityName().toLowerCase(), entity.getId());
+		client.deleteByID(pathFor(entity), entity.getId());
 	}
 
 	@Override
@@ -123,14 +124,13 @@ public class RestController implements ModelController, EntityAccess {
 	@Override
 	public <T extends Readable> T getOne(final Class<T> type, final int id) throws RoseException
 	{
-		final RoseDto dto = client.getDto(type.getSimpleName().toLowerCase(), id);
-		return type.cast(RoseProxy.create(dto, access));
+		return getEntityById(type, id);
 	}
 
 	@Override
-	public <T extends Readable> List<T> getMany(Class<T> type, final List<Integer> ids) throws RoseException
+	public <T extends Readable> List<T> getMany(final Class<T> type, final List<Integer> ids) throws RoseException
 	{
-		final List<RoseDto> dtos = client.getDtos(type.getSimpleName().toLowerCase(), ids);
+		final List<RoseDto> dtos = client.getDtos(pathFor(type), ids);
 		return createProxys(dtos,type);
 	}
 
@@ -140,6 +140,16 @@ public class RestController implements ModelController, EntityAccess {
 		for(final RoseDto dto : dtos)
 			entities.add(type.cast(RoseProxy.create(dto, access)));
 		return entities;
+	}
+
+	private <T extends Readable> String pathFor(final Class<T> type)
+	{
+		return type.getSimpleName().toLowerCase();
+	}
+
+	private String pathFor(final Writable entity)
+	{
+		return entity.getEntityName().toLowerCase();
 	}
 	
 }

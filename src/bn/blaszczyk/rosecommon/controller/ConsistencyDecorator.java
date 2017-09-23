@@ -13,9 +13,10 @@ import bn.blaszczyk.rose.model.Writable;
 import bn.blaszczyk.rosecommon.tools.EntityUtils;
 import bn.blaszczyk.rosecommon.tools.TypeManager;
 
-public class ConsistencyDecorator extends AbstractControllerDecorator implements ModelController {
+final class ConsistencyDecorator extends AbstractControllerDecorator implements ModelController
+{
 	
-	public ConsistencyDecorator(final ModelController controller)
+	ConsistencyDecorator(final ModelController controller)
 	{
 		super(controller);
 	}

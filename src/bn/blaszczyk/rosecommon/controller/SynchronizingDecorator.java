@@ -6,11 +6,12 @@ import bn.blaszczyk.rose.RoseException;
 import bn.blaszczyk.rose.model.Readable;
 import bn.blaszczyk.rose.model.Writable;
 
-public class SynchronizingDecorator implements ModelController {
+final class SynchronizingDecorator implements ModelController
+{
 
 	protected final ModelController controller;
 	
-	public SynchronizingDecorator(final ModelController controller)
+	SynchronizingDecorator(final ModelController controller)
 	{
 		this.controller = controller;
 	}
