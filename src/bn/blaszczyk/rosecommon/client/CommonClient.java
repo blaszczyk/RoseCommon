@@ -1,7 +1,5 @@
 package bn.blaszczyk.rosecommon.client;
 
-import java.net.URLDecoder;
-import java.net.URLEncoder;
 import java.util.Collections;
 import java.util.Map;
 
@@ -15,8 +13,6 @@ import bn.blaszczyk.rosecommon.tools.CommonPreference;
 import bn.blaszczyk.rosecommon.tools.Preferences;
 
 public class CommonClient {
-	
-	public static final String CODING_CHARSET = "UTF-8";
 	
 	private static final Logger LOGGER = LogManager.getLogger(CommonClient.class);
 	
@@ -64,11 +60,10 @@ public class CommonClient {
 				webClient.query(query.getKey(), query.getValue());
 			final Response response = webClient.get();
 			final int status = response.getStatus();
-			final String encodedResponse = response.readEntity(String.class);
+			final String responseString = response.readEntity(String.class);
 			if(status >= 300)
-				throw new RoseException(encodedResponse);
-			final String responseString = URLDecoder.decode(encodedResponse, CODING_CHARSET);
-			LOGGER.debug("decoded response message:\r\n" + responseString);
+				throw new RoseException(responseString);
+			LOGGER.debug("response message:\r\n" + responseString);
 			return responseString;
 		}
 		catch (Exception e)
@@ -91,15 +86,13 @@ public class CommonClient {
 			for(final Map.Entry<String, Object[]> query : queries.entrySet())
 				webClient.query(query.getKey(), query.getValue());
 			LOGGER.debug("decoded request message:\r\n" + request);
-			final String encodedRequest = URLEncoder.encode(request, CODING_CHARSET);
-			final Response response = webClient.post(encodedRequest);
+			final Response response = webClient.post(request);
 			final int status = response.getStatus();
-			final String encodedResponse = response.readEntity(String.class);
+			final String responseString = response.readEntity(String.class);
 			if(status >= 300)
-				throw new RoseException(encodedResponse);
-			if(encodedResponse == null)
+				throw new RoseException(responseString);
+			if(responseString == null)
 				return "";
-			final String responseString = URLDecoder.decode(encodedResponse, CODING_CHARSET);
 			LOGGER.debug("decoded response message:\r\n" + responseString);
 			return responseString;
 		}
@@ -123,8 +116,7 @@ public class CommonClient {
 			for(final Map.Entry<String, Object[]> query : queries.entrySet())
 				webClient.query(query.getKey(), query.getValue());
 			LOGGER.debug("decoded request message:\r\n" + request);
-			final String encodedRequest = URLEncoder.encode(request, CODING_CHARSET);
-			final Response response = webClient.put(encodedRequest);
+			final Response response = webClient.put(request);
 			final int status = response.getStatus();
 			final String encodedResponse = response.readEntity(String.class);
 			if(status >= 300)

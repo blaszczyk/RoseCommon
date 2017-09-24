@@ -60,7 +60,7 @@ public class FileClient {
 	{
 		try
 		{
-			final String path = encodePath(pathArg);
+			final String path = normalizePath(pathArg);
 			LOGGER.debug("requesting GET@/" + path + "?exists");
 			webClient.replacePath("/" + path);
 			webClient.resetQuery();
@@ -82,7 +82,7 @@ public class FileClient {
 	{
 		try
 		{
-			final String path = encodePath(pathArg);
+			final String path = normalizePath(pathArg);
 			LOGGER.debug("requesting GET@/" + path);
 			webClient.replacePath("/" + path);
 			webClient.resetQuery();
@@ -109,7 +109,7 @@ public class FileClient {
 	{
 		try
 		{
-			final String path = encodePath(pathArg);
+			final String path = normalizePath(pathArg);
 			LOGGER.debug("requesting PUT@/" + path);
 			webClient.replacePath("/" + path);
 			webClient.resetQuery();
@@ -132,7 +132,7 @@ public class FileClient {
 	{
 		try
 		{
-			return new URL(webClient.getBaseURI().toString() + encodePath(path));
+			return new URL(webClient.getBaseURI().toString() + normalizePath(path));
 		}
 		catch (MalformedURLException e)
 		{
@@ -140,7 +140,7 @@ public class FileClient {
 		}
 	}
 
-	private static String encodePath(final String pathArg) throws RoseException
+	private static String normalizePath(final String pathArg) throws RoseException
 	{
 		try
 		{
