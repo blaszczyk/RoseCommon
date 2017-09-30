@@ -4,14 +4,15 @@ import java.util.ArrayList;
 import java.util.List;
 
 import bn.blaszczyk.rose.RoseException;
+import bn.blaszczyk.rose.model.Dto;
 import bn.blaszczyk.rose.model.Readable;
 import bn.blaszczyk.rose.model.Timestamped;
 import bn.blaszczyk.rose.model.Writable;
 import bn.blaszczyk.rosecommon.client.RoseClient;
-import bn.blaszczyk.rosecommon.dto.RoseDto;
 import bn.blaszczyk.rosecommon.proxy.EntityAccess;
 import bn.blaszczyk.rosecommon.proxy.LazyList;
 import bn.blaszczyk.rosecommon.proxy.RoseProxy;
+import bn.blaszczyk.rosecommon.tools.EntityUtils;
 import bn.blaszczyk.rosecommon.tools.TypeManager;
 
 final class RestController implements ModelController, EntityAccess
@@ -46,7 +47,7 @@ final class RestController implements ModelController, EntityAccess
 		}
 		else
 		{
-			final List<RoseDto> dtos = client.getDtos(pathFor(type));
+			final List<Dto> dtos = client.getDtos(pathFor(type), type);
 			return createProxys(dtos,type);
 		}
 	}
@@ -66,7 +67,7 @@ final class RestController implements ModelController, EntityAccess
 	@Override
 	public <T extends Readable> T getEntityById(final Class<T> type, final int id) throws RoseException
 	{
-		final RoseDto dto = client.getDto(pathFor(type), id);
+		final Dto dto = client.getDto(type, id);
 		return type.cast(RoseProxy.create(dto, access));
 	}
 	
@@ -77,7 +78,7 @@ final class RestController implements ModelController, EntityAccess
 			return new LazyList<T>(type, ids, access);
 		else
 		{
-			final List<RoseDto> dtos = client.getDtos(pathFor(type), ids);
+			final List<Dto> dtos = client.getDtos(type, ids);
 			return createProxys(dtos,type);
 		}
 	}
@@ -86,18 +87,18 @@ final class RestController implements ModelController, EntityAccess
 	public <T extends Readable> T createNew(final Class<T> type) throws RoseException
 	{
 		final T entity = TypeManager.newInstance(type);
-		final RoseDto dto = new RoseDto(entity);
-		final RoseDto recievedDto = client.postDto(dto);
+		final Dto dto = EntityUtils.toDto(entity);
+		final Dto recievedDto = client.postDto(dto);
 		entity.setId(recievedDto.getId());
-		if(recievedDto.hasTimestamp() && entity instanceof Timestamped)
-			((Timestamped)entity).setTimestamp(recievedDto.getTimestamp());
+		if(entity instanceof Timestamped)
+			((Timestamped)entity).setTimestamp(((Timestamped)recievedDto).getTimestamp());
 		return entity;
 	}
 	
 	@Override
 	public Writable createCopy(final Writable entity) throws RoseException
 	{
-		final RoseDto dto = new RoseDto(entity);
+		final Dto dto = EntityUtils.toDto(entity);
 		client.postDto(dto);
 		return entity;
 	}
@@ -106,7 +107,7 @@ final class RestController implements ModelController, EntityAccess
 	public void update(final Writable... entities) throws RoseException
 	{
 		for(final Writable entity : entities)
-			client.putDto(new RoseDto(entity));
+			client.putDto(EntityUtils.toDto(entity));
 	}
 	
 	@Override
@@ -130,14 +131,14 @@ final class RestController implements ModelController, EntityAccess
 	@Override
 	public <T extends Readable> List<T> getMany(final Class<T> type, final List<Integer> ids) throws RoseException
 	{
-		final List<RoseDto> dtos = client.getDtos(pathFor(type), ids);
+		final List<Dto> dtos = client.getDtos(type, ids);
 		return createProxys(dtos,type);
 	}
 
-	private <T extends Readable> List<T> createProxys(final List<RoseDto> dtos, final Class<T> type) throws RoseException
+	private <T extends Readable> List<T> createProxys(final List<Dto> dtos, final Class<T> type) throws RoseException
 	{
 		final List<T> entities = new ArrayList<>(dtos.size());
-		for(final RoseDto dto : dtos)
+		for(final Dto dto : dtos)
 			entities.add(type.cast(RoseProxy.create(dto, access)));
 		return entities;
 	}

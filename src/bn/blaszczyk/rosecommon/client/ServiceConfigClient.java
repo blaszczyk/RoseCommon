@@ -4,7 +4,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import com.google.gson.Gson;
-import com.google.gson.internal.StringMap;
 
 import bn.blaszczyk.rose.RoseException;
 import bn.blaszczyk.rosecommon.dto.PreferenceDto;
@@ -54,7 +53,7 @@ public class ServiceConfigClient {
 		try
 		{
 			final String response = client.get("config");
-			final StringMap<?> stringMap = GSON.fromJson(response, StringMap.class);
+			final Map<?,?> stringMap = GSON.fromJson(response, Map.class);
 			return new PreferenceDto(stringMap);
 		}
 		catch (Exception e) 
@@ -81,9 +80,9 @@ public class ServiceConfigClient {
 		try
 		{
 			final String response = client.get("status");
-			final StringMap<?> status = GSON.fromJson(response, StringMap.class);
+			final Map<?,?> status = GSON.fromJson(response, Map.class);
 			return status.entrySet().stream().
-				collect(Collectors.toMap(e -> e.getKey(), e -> String.valueOf(e.getValue())));
+				collect(Collectors.toMap(e -> String.valueOf(e.getKey()), e -> String.valueOf(e.getValue())));
 		}
 		catch (Exception e) 
 		{

@@ -85,7 +85,7 @@ public class CommonClient {
 			setPath(path);
 			for(final Map.Entry<String, Object[]> query : queries.entrySet())
 				webClient.query(query.getKey(), query.getValue());
-			LOGGER.debug("decoded request message:\r\n" + request);
+			LOGGER.debug("request message:\r\n" + request);
 			final Response response = webClient.post(request);
 			final int status = response.getStatus();
 			final String responseString = response.readEntity(String.class);
@@ -93,7 +93,7 @@ public class CommonClient {
 				throw new RoseException(responseString);
 			if(responseString == null)
 				return "";
-			LOGGER.debug("decoded response message:\r\n" + responseString);
+			LOGGER.debug("response message:\r\n" + responseString);
 			return responseString;
 		}
 		catch(Exception e)
@@ -115,7 +115,7 @@ public class CommonClient {
 			setPath(path);
 			for(final Map.Entry<String, Object[]> query : queries.entrySet())
 				webClient.query(query.getKey(), query.getValue());
-			LOGGER.debug("decoded request message:\r\n" + request);
+			LOGGER.debug("request message:\r\n" + request);
 			final Response response = webClient.put(request);
 			final int status = response.getStatus();
 			final String encodedResponse = response.readEntity(String.class);

@@ -28,11 +28,13 @@ final class PersistenceController implements ModelController
 	public static final String KEY_URL = "javax.persistence.jdbc.url";
 	public static final String KEY_USER = "javax.persistence.jdbc.user";
 	public static final String KEY_PW = "javax.persistence.jdbc.password";
+	public static final String KEY_PERSISTENCE_UNIT = "bn.blaszczyk.rosecommon.persistence-unit";
 	
 	private static final Logger LOGGER = LogManager.getLogger(PersistenceController.class);
 	private static final Calendar calendar = Calendar.getInstance();
 
 	private static final String TIMESTAMP = "timestamp";
+	private static final String DEFAULT_PERSISTENCE_UNIT = "rosePersistenceUnit";
 	
 	private final EntityManager entityManager;
 	
@@ -42,14 +44,15 @@ final class PersistenceController implements ModelController
 	{
 		try
 		{
-			final EntityManagerFactory entityManagerFactory = Persistence.createEntityManagerFactory("rosePersistenceUnit", properties);
+			final String persistenceUnit = properties.containsKey(KEY_PERSISTENCE_UNIT) ? properties.get(KEY_PERSISTENCE_UNIT) : DEFAULT_PERSISTENCE_UNIT;
+			final EntityManagerFactory entityManagerFactory = Persistence.createEntityManagerFactory(persistenceUnit, properties);
 			entityManager = entityManagerFactory.createEntityManager();
 			checkDbConnectionThread = new Thread(() -> checkDbConnection(),"check-db-connection");
 			checkDbConnectionThread.start();
 		}
 		catch(Exception e)
 		{
-			throw RoseException.wrap(e, "Error initializing PersistenceController");
+			throw RoseException.wrap(e, "error initializing PersistenceController");
 		}
 	}
 	
@@ -88,7 +91,7 @@ final class PersistenceController implements ModelController
 	{
 		try
 		{
-			LOGGER.debug("start load" + " " + type.getSimpleName());
+			LOGGER.debug("start getting " + type.getSimpleName());
 			synchronized (entityManager)
 			{
 				final Class<? extends T> implType = TypeManager.getImplClass(type);
@@ -107,21 +110,21 @@ final class PersistenceController implements ModelController
 				}
 				final List<T> list = entityManager.createQuery(query).getResultList();
 				
-				LOGGER.debug("end load entities: " + type.getName() + " count=" + list.size());
+				LOGGER.debug("end getting " + type.getSimpleName() + " count=" + list.size());
 				return list;
 				
 			}
 		}
 		catch(Exception e)
 		{
-			throw new RoseException("error loading entities: " + type.getName(), e);
+			throw new RoseException("error getting " + type.getSimpleName(), e);
 		}
 	}
 	
 	@Override
 	public <T extends Readable> List<Integer> getIds(final Class<T> type) throws RoseException
 	{
-		final String message = "fetching all ids of" + type.getSimpleName();
+		final String message = "getting all ids of" + type.getSimpleName();
 		try
 		{
 			synchronized (entityManager)
@@ -222,7 +225,7 @@ final class PersistenceController implements ModelController
 				final Root<? extends T> root = query.from(implType);
 				query.where(root.get("id").in(ids));
 				final List<T> entities = entityManager.createQuery(query).getResultList();
-				LOGGER.debug("start " + message);
+				LOGGER.debug("end " + message);
 				return entities;
 			}
 		}
@@ -248,7 +251,7 @@ final class PersistenceController implements ModelController
 						continue;
 					if(entity.getId() < 0)
 					{
-						throw new RoseException("Impossible Id: " + entity.getId());
+						throw new RoseException("illegal id: " + entity.getId());
 					}
 					else
 					{
@@ -348,7 +351,7 @@ final class PersistenceController implements ModelController
 		}
 		catch(Exception e)
 		{
-			throw RoseException.wrap(e, "Error closing EntityManager");
+			throw RoseException.wrap(e, "error closing EntityManager");
 		}
 	}
 	
@@ -367,7 +370,7 @@ final class PersistenceController implements ModelController
 		}
 		catch(Exception e)
 		{
-			throw new RoseException("Unable to execute query '" + query + "'", e);
+			throw new RoseException("unable to execute query '" + query + "'", e);
 		}
 	}
 	

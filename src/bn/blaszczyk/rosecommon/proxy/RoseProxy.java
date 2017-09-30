@@ -6,20 +6,20 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.*;
 
 import bn.blaszczyk.rose.RoseException;
 import bn.blaszczyk.rose.model.EntityModel;
+import bn.blaszczyk.rose.model.Dto;
 import bn.blaszczyk.rose.model.EntityField;
 import bn.blaszczyk.rose.model.Field;
 import bn.blaszczyk.rose.model.Writable;
 import bn.blaszczyk.rose.model.Readable;
 import bn.blaszczyk.rose.model.Representable;
 import bn.blaszczyk.rose.model.Timestamped;
-import bn.blaszczyk.rosecommon.dto.RoseDto;
 import bn.blaszczyk.rosecommon.tools.EntityUtils;
 import bn.blaszczyk.rosecommon.tools.TypeManager;
 
@@ -29,11 +29,11 @@ public class RoseProxy implements InvocationHandler {
 	
 	private static Boolean fetchLock = false;
 	
-	public static Representable create(final RoseDto dto, final EntityAccess access) throws RoseException
+	public static Representable create(final Dto dto, final EntityAccess access) throws RoseException
 	{
 		final RoseProxy handler = new RoseProxy(dto, access);
-		final ClassLoader loader = dto.getType().getClassLoader();
-		final Class<?>[] interfaces = new Class<?>[]{dto.getType(),Comparable.class};
+		final ClassLoader loader = TypeManager.getClass(dto).getClassLoader();
+		final Class<?>[] interfaces = new Class<?>[]{TypeManager.getClass(dto),Comparable.class};
 		final Representable proxy = (Representable) Proxy.newProxyInstance(loader, interfaces, handler);
 		return proxy;
 	}
@@ -49,10 +49,10 @@ public class RoseProxy implements InvocationHandler {
 	private boolean fetchedAll = false;
 	private final List<List<Integer>> allIds;
 	
-	private RoseProxy(final RoseDto dto, final EntityAccess access) throws RoseException
+	private RoseProxy(final Dto dto, final EntityAccess access) throws RoseException
 	{
 		this.access = access;
-		entity = (Representable) TypeManager.newInstance(dto.getType());
+		entity = (Representable) TypeManager.newInstance(dto);
 		entityModel = TypeManager.getEntityModel(entity);
 		type = entity.getClass();
 		
@@ -61,8 +61,8 @@ public class RoseProxy implements InvocationHandler {
 		allIds = new ArrayList<>(entity.getEntityCount());
 		
 		entity.setId(dto.getId());
-		if(dto.hasTimestamp() && entity instanceof Timestamped)
-			((Timestamped)entity).setTimestamp(dto.getTimestamp());
+		if(entity instanceof Timestamped)
+			((Timestamped)entity).setTimestamp(((Timestamped)dto).getTimestamp());
 		
 		for(int i = 0; i < entity.getFieldCount(); i++)
 			setPrimitive(i, dto.getFieldValue(entity.getFieldName(i)));
@@ -85,30 +85,31 @@ public class RoseProxy implements InvocationHandler {
 		return method.invoke(entity, args);
 	}
 
-	private void setPrimitive(final int index, final String dtoValue) throws RoseException
+	private void setPrimitive(final int index, final Object object) throws RoseException
 	{
 		final Field field = entityModel.getFields().get(index);
-		final Object value = EntityUtils.getPrimitiveValue(field, dtoValue);
+		final Object value = EntityUtils.toEntityValue(field, object);
 		entity.setField(index, value);
 	}
 	
-	private void setEntityIds(final int index, final RoseDto dto)
+	private void setEntityIds(final int index, final Dto dto)
 	{
-		final List<Integer> ids;
+		final int[] ids;
 		final String fieldName = entityModel.getEntityFields().get(index).getName();
 		if(entity.getRelationType(index).isSecondMany())
 		{
 			ids = dto.getEntityIds(fieldName);
-			if(ids.isEmpty())
+			if(ids.length == 0)
 				fetched[index] = true;
 		}
 		else
 		{
-			if(dto.getEntityId(fieldName) < 0)
+			final int id = dto.getEntityId(fieldName);
+			if(id < 0)
 				fetched[index] = true;
-			ids = Collections.singletonList(dto.getEntityId(fieldName));
+			ids = new int[]{id};
 		}
-		allIds.add(index, ids);
+		allIds.add(index, Arrays.stream(ids).mapToObj(Integer::new).collect(Collectors.toList()));
 	}
 	
 	private int getFetchIndex(final Method method, final Object[] args)

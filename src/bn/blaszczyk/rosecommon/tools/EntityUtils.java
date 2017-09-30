@@ -1,58 +1,144 @@
 package bn.blaszczyk.rosecommon.tools;
 
 import java.math.BigDecimal;
+import java.util.Date;
 import java.util.Set;
 
 import bn.blaszczyk.rose.RoseException;
+import bn.blaszczyk.rose.model.Dto;
+import bn.blaszczyk.rose.model.EntityModel;
 import bn.blaszczyk.rose.model.EnumField;
 import bn.blaszczyk.rose.model.Field;
 import bn.blaszczyk.rose.model.Identifyable;
 import bn.blaszczyk.rose.model.PrimitiveField;
 import bn.blaszczyk.rose.model.Readable;
-import bn.blaszczyk.rosecommon.dto.RoseDto;
 
 public final class EntityUtils {
 	
-	public static Object getPrimitiveValue(final Field field, final String stringValue) throws RoseException
+	public static Object toEntityValue(final Field field, final Object dtoValue) throws RoseException
 	{
-		if(stringValue == null || stringValue.equals("null"))
+		if(dtoValue == null || dtoValue.equals("null"))
 			return null;
 		try
 		{
 			if(field instanceof EnumField)
-			{
-				final Class<?> enumType = TypeManager.getClass(((EnumField) field).getEnumType());
-				for(final Object value : enumType.getEnumConstants())
-					if(value.toString().equals(stringValue))
-						return value;
-			}
+				return dtoValue;
 			else if(field instanceof PrimitiveField)
 			{
 				final PrimitiveField pField = (PrimitiveField) field;
 				switch(pField.getType())
 				{
-				case BOOLEAN:
-					return Boolean.parseBoolean(stringValue);
 				case DATE:
-					return RoseDto.DATE_FORMAT.parse(stringValue);
-				case INT:
-					return Integer.parseInt(stringValue);
+					return new Date((long)dtoValue);
 				case NUMERIC:
-					final BigDecimal numValue = (BigDecimal) RoseDto.BIG_DEC_FORMAT.parse(stringValue);
+					final BigDecimal numValue = new BigDecimal((String)dtoValue);
 					checkNumeric(numValue,pField);
 					return numValue;
 				case CHAR:
 				case VARCHAR:
-					checkString(stringValue,pField);
-					return stringValue;
+					checkString((String)dtoValue,pField);
+				case INT:
+				case BOOLEAN:
+					return dtoValue;
 				}
 			}
 		}
 		catch(Exception e)
 		{
-			throw RoseException.wrap(e,"Error parsing primitive '" + stringValue + "' for " + field.getName());
+			throw RoseException.wrap(e,"Error parsing primitive '" + dtoValue + "' for " + field.getName());
 		}
 		return null;
+	}
+	
+	public static Object toDtoValue(final Field field, final Object value) throws RoseException
+	{
+		try
+		{
+			if(field instanceof EnumField)
+				return value;
+			else if(field instanceof PrimitiveField)
+			{
+				final PrimitiveField pField = (PrimitiveField) field;
+				switch(pField.getType())
+				{
+				case DATE:
+					if(value == null)
+						return Long.valueOf(-1);
+					return ((Date)value).getTime();
+				case NUMERIC:
+					final BigDecimal numValue = (BigDecimal)value;
+					checkNumeric(numValue,pField);
+					return numValue.toPlainString();
+				case CHAR:
+				case VARCHAR:
+					checkString((String)value,pField);
+					return value;
+				case INT:
+					if(value == null)
+						return 0;
+					return value;
+				case BOOLEAN:
+					if(value == null)
+						return false;
+					return value;
+				}
+			}
+		}
+		catch(Exception e)
+		{
+			throw RoseException.wrap(e,"Error parsing primitive '" + value + "' for " + field.getName());
+		}
+		return null;
+	}
+	
+	public static Dto toDto(final Readable entity) throws RoseException
+	{
+		final Class<? extends Dto> dtoType = TypeManager.getDtoClass(entity);
+		final EntityModel entityModel = TypeManager.getEntityModel(entity);
+		try
+		{
+			final Dto dto = dtoType.newInstance();
+			dto.setId(entity.getId());
+			for(int i = 0; i < entityModel.getFields().size(); i++)
+			{
+				final Field field = entityModel.getFields().get(i);
+				final Object value = entity.getFieldValue(i);
+				final String fieldName = field.getName();
+				dto.setFieldValue(fieldName, toDtoValue(field, value));
+			}
+			for(int i = 0; i < entity.getEntityCount(); i++)
+				if(entity.getRelationType(i).isSecondMany())
+				{
+					final int[] ids = entity.getEntityValueMany(i).stream()
+						.map(Identifyable::getId)
+						.mapToInt(Integer::intValue)
+						.toArray();
+					dto.setEntityIds(entity.getEntityName(i), ids);
+				}
+				else
+				{
+					final Readable value = entity.getEntityValueOne(i);
+					final int id = value == null ? -1 : value.getId();
+					dto.setEntityId(entity.getEntityName(i), id);
+			}
+			return dto;
+		}
+		catch (InstantiationException | IllegalAccessException e)
+		{
+			throw new RoseException("error creating dto for " + toStringSimple(entity), e);
+		}
+	}
+	
+	public static Dto toDtoSilent(final Readable entity)
+	{
+		try
+		{
+			return toDto(entity);
+		}
+		catch(final RoseException e)
+		{
+			throw new RuntimeException(e.getFullMessage(), e);
+		}
 	}
 	
 	public static String toStringSimple(Identifyable entity)
@@ -114,7 +200,7 @@ public final class EntityUtils {
 			return false;
 		if(! TypeManager.convertType(i1.getClass()).equals(TypeManager.convertType(i2.getClass())))
 			return false;
-		return i1.getId().equals(i2.getId());
+		return i1.getId() == i2.getId();
 	}
 
 	private static void checkNumeric(final BigDecimal value, final PrimitiveField field) throws RoseException
@@ -129,6 +215,8 @@ public final class EntityUtils {
 
 	private static void checkString(final String value, final PrimitiveField field) throws RoseException
 	{
+		if(value == null)
+			return;
 		final int length = field.getLength1();
 		if(value.length() > length)
 			throw new RoseException("string value " + field.getName() + "='" + value + "' too long; max_length=" + length);

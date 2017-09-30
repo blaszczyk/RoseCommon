@@ -7,8 +7,6 @@ import java.text.ParseException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import com.google.gson.internal.StringMap;
-
 import bn.blaszczyk.rose.RoseException;
 import bn.blaszczyk.rosecommon.tools.Preference;
 
@@ -20,21 +18,15 @@ public class PreferenceDto extends LinkedHashMap<String, String>{
 	static{
 		BIG_DEC_FORMAT.setParseBigDecimal(true);
 	}
-	
-	public PreferenceDto(final StringMap<?> stringMap) throws RoseException
-	{
-		for(final Map.Entry<String, ?> entry : stringMap.entrySet())
-		{
-			put(entry.getKey(), String.valueOf(entry.getValue()));
-		}
-	}
 
-	public PreferenceDto(final Map<String, String[]> parameterMap) throws RoseException
+	public PreferenceDto(final Map<?, ?> map) throws RoseException
 	{
-		for(final Map.Entry<String, String[]> entry : parameterMap.entrySet())
+		for(final Map.Entry<?, ?> entry : map.entrySet())
 		{
-			checkArrayEntry(entry);
-			put(entry.getKey(), entry.getValue()[0]);
+			final String key = entry.getKey().toString();
+			final Object valueObj = entry.getValue();
+			final String value = valueObj instanceof String[] ? ((String[])valueObj)[0] : String.valueOf(valueObj);
+			put(key, value);
 		}
 	}
 	
@@ -113,13 +105,6 @@ public class PreferenceDto extends LinkedHashMap<String, String>{
 	public boolean containsPreference( final Preference preference)
 	{
 		return containsKey(preference.getKey());
-	}
-	
-	private void checkArrayEntry(final Map.Entry<String, String[]> entry) throws RoseException
-	{
-		final String[] value = entry.getValue();
-		if(value.length != 1)
-			throw new RoseException("array value " + entry.getKey() + "=" + value + " has no unique element");
 	}
 	
 }
