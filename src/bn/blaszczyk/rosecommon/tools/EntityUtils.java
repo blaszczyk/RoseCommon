@@ -93,40 +93,32 @@ public final class EntityUtils {
 	
 	public static Dto toDto(final Readable entity) throws RoseException
 	{
-		final Class<? extends Dto> dtoType = TypeManager.getDtoClass(entity);
 		final EntityModel entityModel = TypeManager.getEntityModel(entity);
-		try
+		final Dto dto = TypeManager.newDtoInstance(entity.getEntityName());
+		dto.setId(entity.getId());
+		for(int i = 0; i < entityModel.getFields().size(); i++)
 		{
-			final Dto dto = dtoType.newInstance();
-			dto.setId(entity.getId());
-			for(int i = 0; i < entityModel.getFields().size(); i++)
+			final Field field = entityModel.getFields().get(i);
+			final Object value = entity.getFieldValue(i);
+			final String fieldName = field.getName();
+			dto.setFieldValue(fieldName, toDtoValue(field, value));
+		}
+		for(int i = 0; i < entity.getEntityCount(); i++)
+			if(entity.getRelationType(i).isSecondMany())
 			{
-				final Field field = entityModel.getFields().get(i);
-				final Object value = entity.getFieldValue(i);
-				final String fieldName = field.getName();
-				dto.setFieldValue(fieldName, toDtoValue(field, value));
+				final int[] ids = entity.getEntityValueMany(i).stream()
+					.map(Identifyable::getId)
+					.mapToInt(Integer::intValue)
+					.toArray();
+				dto.setEntityIds(entity.getEntityName(i), ids);
 			}
-			for(int i = 0; i < entity.getEntityCount(); i++)
-				if(entity.getRelationType(i).isSecondMany())
-				{
-					final int[] ids = entity.getEntityValueMany(i).stream()
-						.map(Identifyable::getId)
-						.mapToInt(Integer::intValue)
-						.toArray();
-					dto.setEntityIds(entity.getEntityName(i), ids);
-				}
-				else
-				{
-					final Readable value = entity.getEntityValueOne(i);
-					final int id = value == null ? -1 : value.getId();
-					dto.setEntityId(entity.getEntityName(i), id);
-			}
-			return dto;
+			else
+			{
+				final Readable value = entity.getEntityValueOne(i);
+				final int id = value == null ? -1 : value.getId();
+				dto.setEntityId(entity.getEntityName(i), id);
 		}
-		catch (InstantiationException | IllegalAccessException e)
-		{
-			throw new RoseException("error creating dto for " + toStringSimple(entity), e);
-		}
+		return dto;
 	}
 	
 	public static Dto toDtoSilent(final Readable entity)

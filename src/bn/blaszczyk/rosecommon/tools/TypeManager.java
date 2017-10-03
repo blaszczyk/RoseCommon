@@ -180,6 +180,18 @@ public class TypeManager {
 	{
 		return dtoClasses.get(type.toLowerCase());
 	}
+	
+	public static Dto newDtoInstance(final String type) throws RoseException
+	{
+		try
+		{
+			return getDtoClass(type).newInstance();
+		}
+		catch (InstantiationException | IllegalAccessException e)
+		{
+			throw new RoseException("error instatioating dto of type " + type, e);
+		}
+	}
 
 	public static Class<? extends Dto> getDtoClass(final Class<? extends Readable> type)
 	{

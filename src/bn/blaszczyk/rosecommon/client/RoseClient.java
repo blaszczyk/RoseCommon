@@ -3,6 +3,7 @@ package bn.blaszczyk.rosecommon.client;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import com.google.gson.Gson;
@@ -25,10 +26,16 @@ public class RoseClient {
 	
 	public Dto getDto(final Class<? extends Readable> type, final int id) throws RoseException
 	{
-		final List<Dto> dtos = getDtos(type.getSimpleName().toLowerCase() + "/" + id, type);
-		if(dtos.size() != 1)
-			throw new RoseException("error on GET@/entity/" + type + "/" + id + "; found:" + dtos);
-		return dtos.get(0);
+		try
+		{
+			final String response = client.get("/" + type.getSimpleName().toLowerCase() + "/" + id);
+			final Dto dto = GSON.fromJson(response, TypeManager.getDtoClass(type));
+			return dto;
+		}
+		catch (Exception e)
+		{
+			throw RoseException.wrap(e, "Error on GET@/entity/" + type.getSimpleName().toLowerCase() + "/" + id);
+		}
 	}
 	
 	public List<Dto> getDtos(final String path, final Class<? extends Readable> type) throws RoseException
@@ -67,7 +74,17 @@ public class RoseClient {
 	{
 		if(entityIds.isEmpty())
 			return Collections.emptyList();
-		return getDtos(type.getSimpleName().toLowerCase() + "/" + commaSeparated(entityIds),type);
+		try
+		{
+			final Map<String, Object[]> query = Collections.singletonMap("id", new Object[] {commaSeparated(entityIds)});
+			final String response = client.get("/" + type.getSimpleName().toLowerCase(), query);
+			final Dto[] dtos = GSON.fromJson(response, TypeManager.getDtoArrayClass(type));
+			return Arrays.asList(dtos);
+		}
+		catch (Exception e)
+		{
+			throw RoseException.wrap(e, "Error on GET@/entity/" + type.getSimpleName().toLowerCase());
+		}
 	}
 
 	public List<Dto> getDtos(final Class<? extends Readable> type, final int[] entityIds) throws RoseException

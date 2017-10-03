@@ -61,8 +61,8 @@ public class RoseProxy implements InvocationHandler {
 		allIds = new ArrayList<>(entity.getEntityCount());
 		
 		entity.setId(dto.getId());
-		if(entity instanceof Timestamped)
-			((Timestamped)entity).setTimestamp(((Timestamped)dto).getTimestamp());
+//		if(entity instanceof Timestamped && dto instanceof Timestamped)
+//			((Timestamped)entity).setTimestamp(((Timestamped)dto).getTimestamp());
 		
 		for(int i = 0; i < entity.getFieldCount(); i++)
 			setPrimitive(i, dto.getFieldValue(entity.getFieldName(i)));
