@@ -80,7 +80,7 @@ final class PersistenceController implements ModelController
 			}
 			catch (InterruptedException e)
 			{
-				LOGGER.warn("terminating check DB connection thread", e);
+				LOGGER.info("terminating check DB connection thread");
 				break;
 			}
 		}

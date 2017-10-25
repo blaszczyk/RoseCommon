@@ -55,8 +55,6 @@ final class ConsistencyDecorator extends AbstractControllerDecorator implements 
 			}
 		}
 		controller.update( checkedEntities.toArray(new Writable[checkedEntities.size()]));
-		if(entities.length != checkedEntities.size())
-			throw new RoseException("Trying to update null entity.");
 	}
 	
 	@Override
