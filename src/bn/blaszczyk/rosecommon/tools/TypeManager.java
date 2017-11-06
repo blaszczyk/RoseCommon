@@ -24,6 +24,8 @@ public class TypeManager {
 	private final static Map<String, Class<? extends Dto[]>> dtoArrayClasses = new HashMap<>();
 	private final static Map<String,EntityModel> entityModels = new HashMap<>();
 	private final static Map<String,EnumModel> enumModels = new HashMap<>();
+
+	private static Class<? extends DtoContainer> dtoContainerClass;
 	
 	private TypeManager()
 	{
@@ -33,6 +35,7 @@ public class TypeManager {
 	{
 		final RoseParser parser = RoseParser.forResources(resource);
 		parser.parse();
+		final MetaData metadata = parser.getMetadata();
 		for(final EntityModel entityModel : parser.getEntities())
 		{
 			entityModels.put(entityModel.getSimpleClassName().toLowerCase(), entityModel);
@@ -41,8 +44,8 @@ public class TypeManager {
 				final String key = entityModel.getSimpleClassName().toLowerCase();
 				entityClasses.put(key, Class.forName(entityModel.getClassName()).asSubclass(Readable.class));
 				implClasses.put(key, Class.forName(entityModel.getClassName() + "Impl").asSubclass(Readable.class));
-				dtoClasses.put(key, Class.forName(getDtoName(entityModel, parser.getMetadata())).asSubclass(Dto.class));
-				dtoArrayClasses.put(key, Class.forName("[L" + getDtoName(entityModel, parser.getMetadata()) + ";").asSubclass(Dto[].class));
+				dtoClasses.put(key, Class.forName(getDtoName(entityModel, metadata)).asSubclass(Dto.class));
+				dtoArrayClasses.put(key, Class.forName("[L" + getDtoName(entityModel, metadata) + ";").asSubclass(Dto[].class));
 				LOGGER.info( "register entity class " + entityModel.getClassName());
 			}
 			catch (ClassNotFoundException e)
@@ -65,6 +68,16 @@ public class TypeManager {
 				LOGGER.error("unable to load enum class " + enumModel.getClassName(), e);
 				throw new RoseException("error loading class for " + enumModel.getSimpleClassName(), e);
 			}
+		}
+		try
+		{
+			dtoContainerClass = Class.forName(metadata.getDtopackage() + "." + metadata.getDtocontainername()).asSubclass(DtoContainer.class);
+			LOGGER.info( "load dto container class " + metadata.getDtocontainername());
+		}
+		catch (ClassNotFoundException e)
+		{
+			LOGGER.error("unable to load dto container class " + metadata.getDtocontainername(), e);
+			throw new RoseException("error loading dto container class " + metadata.getDtocontainername(), e);
 		}
 	}
 
@@ -221,5 +234,22 @@ public class TypeManager {
 	public static EntityModel getEntityModel(final Dto dto)
 	{
 		return getEntityModel(getClass(dto));
+	}
+
+	public static DtoContainer newDtoContainer() throws RoseException
+	{
+		try
+		{
+			return dtoContainerClass.newInstance();
+		}
+		catch (InstantiationException | IllegalAccessException e)
+		{
+			throw new RoseException("error instatiating new dto container", e);
+		}
+	}
+
+	public static Class<? extends DtoContainer> getDtoContainerClass()
+	{
+		return dtoContainerClass;
 	}
 }

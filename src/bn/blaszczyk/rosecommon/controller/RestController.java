@@ -90,7 +90,7 @@ final class RestController implements ModelController, EntityAccess
 		final Dto dto = EntityUtils.toDto(entity);
 		final Dto recievedDto = client.postDto(dto);
 		entity.setId(recievedDto.getId());
-		if(entity instanceof Timestamped)
+		if(entity instanceof Timestamped && recievedDto instanceof Timestamped)
 			((Timestamped)entity).setTimestamp(((Timestamped)recievedDto).getTimestamp());
 		return entity;
 	}

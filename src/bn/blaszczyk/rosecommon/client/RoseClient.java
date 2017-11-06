@@ -10,7 +10,9 @@ import com.google.gson.Gson;
 
 import bn.blaszczyk.rose.RoseException;
 import bn.blaszczyk.rose.model.Dto;
+import bn.blaszczyk.rose.model.DtoContainer;
 import bn.blaszczyk.rose.model.Readable;
+import bn.blaszczyk.rosecommon.dto.DtoContainerRequest;
 import bn.blaszczyk.rosecommon.tools.TypeManager;
 
 public class RoseClient {
@@ -22,6 +24,20 @@ public class RoseClient {
 	public RoseClient(final String url)
 	{
 		client = CommonClient.newInstance(url + "/entity");
+	}
+	
+	public DtoContainer getContainer(final DtoContainerRequest request) throws RoseException
+	{
+		try
+		{
+			final String response = client.get("", request.getQueries());
+			final DtoContainer container = GSON.fromJson(response, TypeManager.getDtoContainerClass());
+			return container;
+		}
+		catch (Exception e)
+		{
+			throw RoseException.wrap(e, "Error on GET@/entity");
+		}
 	}
 	
 	public Dto getDto(final Class<? extends Readable> type, final int id) throws RoseException

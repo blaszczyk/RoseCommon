@@ -1,16 +1,19 @@
 package bn.blaszczyk.rosecommon.tools;
 
 import java.math.BigDecimal;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Set;
 
 import bn.blaszczyk.rose.RoseException;
 import bn.blaszczyk.rose.model.Dto;
+import bn.blaszczyk.rose.model.EntityField;
 import bn.blaszczyk.rose.model.EntityModel;
 import bn.blaszczyk.rose.model.EnumField;
 import bn.blaszczyk.rose.model.Field;
 import bn.blaszczyk.rose.model.Identifyable;
 import bn.blaszczyk.rose.model.PrimitiveField;
+import bn.blaszczyk.rose.model.PrimitiveType;
 import bn.blaszczyk.rose.model.Readable;
 
 public final class EntityUtils {
@@ -107,8 +110,7 @@ public final class EntityUtils {
 			if(entity.getRelationType(i).isSecondMany())
 			{
 				final int[] ids = entity.getEntityValueMany(i).stream()
-					.map(Identifyable::getId)
-					.mapToInt(Integer::intValue)
+					.mapToInt(Identifyable::getId)
 					.toArray();
 				dto.setEntityIds(entity.getEntityName(i), ids);
 			}
@@ -117,7 +119,7 @@ public final class EntityUtils {
 				final Readable value = entity.getEntityValueOne(i);
 				final int id = value == null ? -1 : value.getId();
 				dto.setEntityId(entity.getEntityName(i), id);
-		}
+			}
 		return dto;
 	}
 	
@@ -212,6 +214,30 @@ public final class EntityUtils {
 		final int length = field.getLength1();
 		if(value.length() > length)
 			throw new RoseException("string value " + field.getName() + "='" + value + "' too long; max_length=" + length);
+	}
+
+	public static String toString(final Dto dto)
+	{
+		final EntityModel entityModel = TypeManager.getEntityModel(dto);
+		String toString = entityModel.getToString();
+		for(final Field field : entityModel.getFields())
+		{
+			final String stringValue = toString(field,dto);
+			toString = toString.replaceAll("%" + field.getName().toLowerCase(), stringValue);
+		}
+		for(final EntityField field : entityModel.getEntityFields())
+			toString = toString.replaceAll("%" + field.getName(), "");
+		return toString.trim();
+	}
+
+	private static String toString(final Field field, final Dto dto)
+	{
+		final Object value = dto.getFieldValue(field.getName());
+		if(value == null)
+			return "";
+		if(field instanceof PrimitiveField && ((PrimitiveField)field).getType().equals(PrimitiveType.DATE))
+			return new SimpleDateFormat("dd.MM.yyyy").format(new Date((Long)value));
+		return String.valueOf(value);
 	}
 
 }
