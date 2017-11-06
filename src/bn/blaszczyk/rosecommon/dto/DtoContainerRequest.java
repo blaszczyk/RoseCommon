@@ -7,9 +7,9 @@ import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 import bn.blaszczyk.rose.model.Dto;
+import bn.blaszczyk.rose.model.DtoContainer;
 import bn.blaszczyk.rose.model.EntityField;
 import bn.blaszczyk.rose.model.EntityModel;
-import bn.blaszczyk.rose.model.Readable;
 import bn.blaszczyk.rosecommon.tools.TypeManager;
 
 public class DtoContainerRequest
@@ -19,13 +19,14 @@ public class DtoContainerRequest
 	public DtoContainerRequest()
 	{
 		allIds = new HashMap<>(TypeManager.getEntityCount());
-		for(final Class<? extends Readable> type : TypeManager.getEntityClasses())
-			allIds.put(type.getSimpleName().toLowerCase(), new TreeSet<>());
+		for(final String entityName : TypeManager.getEntityNames())
+			allIds.put(entityName, new TreeSet<>());
 	}
 	
 	public void request(final String type, final int id)
 	{
-		allIds.get(type.toLowerCase()).add(id);
+		if(id > 0)
+			allIds.get(type.toLowerCase()).add(id);
 	}
 	
 	public void requestOwners(final Dto dto)
@@ -49,6 +50,19 @@ public class DtoContainerRequest
 				queries.put(ids.getKey(), new Object[] {idsString});
 			}
 		return queries;
+	}
+
+	public void removeAll(final DtoContainer container)
+	{
+		TypeManager.getEntityNames()
+			.forEach(n -> allIds.get(n).removeAll(container.getAllIds(n)));
+	}
+	
+	public boolean isEmpty()
+	{
+		return allIds.values()
+			.stream()
+			.allMatch(Set::isEmpty);
 	}
 
 }

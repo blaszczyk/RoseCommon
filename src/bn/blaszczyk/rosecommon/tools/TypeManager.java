@@ -1,8 +1,10 @@
 
 package bn.blaszczyk.rosecommon.tools;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.logging.log4j.*;
@@ -24,6 +26,7 @@ public class TypeManager {
 	private final static Map<String, Class<? extends Dto[]>> dtoArrayClasses = new HashMap<>();
 	private final static Map<String,EntityModel> entityModels = new HashMap<>();
 	private final static Map<String,EnumModel> enumModels = new HashMap<>();
+	private final static List<String> entityNames = new ArrayList<>();
 
 	private static Class<? extends DtoContainer> dtoContainerClass;
 	
@@ -38,14 +41,15 @@ public class TypeManager {
 		final MetaData metadata = parser.getMetadata();
 		for(final EntityModel entityModel : parser.getEntities())
 		{
-			entityModels.put(entityModel.getSimpleClassName().toLowerCase(), entityModel);
+			final String entityName = entityModel.getSimpleClassName().toLowerCase();
+			entityNames.add(entityName);
+			entityModels.put(entityName, entityModel);
 			try
 			{
-				final String key = entityModel.getSimpleClassName().toLowerCase();
-				entityClasses.put(key, Class.forName(entityModel.getClassName()).asSubclass(Readable.class));
-				implClasses.put(key, Class.forName(entityModel.getClassName() + "Impl").asSubclass(Readable.class));
-				dtoClasses.put(key, Class.forName(getDtoName(entityModel, metadata)).asSubclass(Dto.class));
-				dtoArrayClasses.put(key, Class.forName("[L" + getDtoName(entityModel, metadata) + ";").asSubclass(Dto[].class));
+				entityClasses.put(entityName, Class.forName(entityModel.getClassName()).asSubclass(Readable.class));
+				implClasses.put(entityName, Class.forName(entityModel.getClassName() + "Impl").asSubclass(Readable.class));
+				dtoClasses.put(entityName, Class.forName(getDtoName(entityModel, metadata)).asSubclass(Dto.class));
+				dtoArrayClasses.put(entityName, Class.forName("[L" + getDtoName(entityModel, metadata) + ";").asSubclass(Dto[].class));
 				LOGGER.info( "register entity class " + entityModel.getClassName());
 			}
 			catch (ClassNotFoundException e)
@@ -251,5 +255,10 @@ public class TypeManager {
 	public static Class<? extends DtoContainer> getDtoContainerClass()
 	{
 		return dtoContainerClass;
+	}
+
+	public static List<String> getEntityNames()
+	{
+		return entityNames;
 	}
 }

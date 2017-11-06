@@ -15,7 +15,7 @@ public class Cache
 	public Cache()
 	{
 		for(final Class<? extends Readable> type : TypeManager.getEntityClasses())
-			entities.put(TypeManager.convertType(type), new TreeMap<>());
+			entities.put(type, new TreeMap<>());
 	}
 	
 	public <T extends Readable> int count(final Class<T> type)

@@ -2,9 +2,7 @@ package bn.blaszczyk.rosecommon.controller;
 
 import java.io.Reader;
 import java.io.Writer;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Map.Entry;
+import java.util.Collection;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -13,6 +11,7 @@ import com.google.gson.Gson;
 
 import bn.blaszczyk.rose.RoseException;
 import bn.blaszczyk.rose.model.Dto;
+import bn.blaszczyk.rose.model.DtoContainer;
 import bn.blaszczyk.rose.model.Readable;
 import bn.blaszczyk.rosecommon.proxy.EntityAccess;
 import bn.blaszczyk.rosecommon.proxy.RoseProxy;
@@ -52,33 +51,31 @@ public class CacheManager
 	public void writeTo(final Writer writer) throws RoseException
 	{
 		LOGGER.debug("start writing from cache");
-		final Map<String, String> dtoJsons = new HashMap<>();
+		final DtoContainer container = TypeManager.newDtoContainer();
 		for(final Class<? extends Readable> type : TypeManager.getEntityClasses())
 		{
-			final Dto[] dtos = cache.stream(type)
+			cache.stream(type)
 					.map(EntityUtils::toDtoSilent)
-					.toArray(Dto[]::new);
-			dtoJsons.put(type.getSimpleName(), GSON.toJson(dtos));
-			LOGGER.debug("writing " + dtos.length + " instances of " + type.getSimpleName());
+					.forEach(container::put);
+			LOGGER.debug("writing " + cache.count(type) + " instances of " + type.getSimpleName());
 		}
-		GSON.toJson(dtoJsons, writer);
+		GSON.toJson(container, writer);
 		LOGGER.debug("done writing from cache");
 	}
 	
 	public void readFrom(final Reader reader) throws RoseException
 	{
 		LOGGER.debug("start reading into cache");
-		final Map<?,?> dtoJsons = GSON.fromJson(reader, Map.class);
-		for(final Entry<?, ?> entry : dtoJsons.entrySet())
+		final DtoContainer container = GSON.fromJson(reader, TypeManager.getDtoContainerClass());
+		for(final Class<? extends Readable> type : TypeManager.getEntityClasses())
 		{
-			final Class<? extends Readable> type = TypeManager.getClass(String.valueOf(entry.getKey()));
-			final Dto[] dtos = GSON.fromJson(reader, TypeManager.getDtoArrayClass(type));
+			final Collection<? extends Dto> dtos = container.getAll(type.getSimpleName().toLowerCase());
 			for(final Dto dto : dtos)
 			{
 				final Readable entity = RoseProxy.create(dto, access);
 				cache.put(entity);
 			}
-			LOGGER.debug("reading " + dtos.length + " instances of " + type.getSimpleName() + " into cache");
+			LOGGER.debug("reading " + dtos.size() + " instances of " + type.getSimpleName() + " into cache");
 		}
 		LOGGER.debug("done reading into cache");
 	}
