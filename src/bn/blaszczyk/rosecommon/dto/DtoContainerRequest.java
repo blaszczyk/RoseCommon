@@ -31,6 +31,8 @@ public class DtoContainerRequest
 	
 	public void requestOwners(final Dto dto)
 	{
+		if(dto == null)
+			return;
 		final EntityModel entityModel = TypeManager.getEntityModel(dto);
 		for(final EntityField entityField : entityModel.getEntityFields())
 			if(!entityField.getType().isSecondMany())

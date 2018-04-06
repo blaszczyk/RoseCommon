@@ -6,11 +6,10 @@ import java.util.stream.Collectors;
 import bn.blaszczyk.rose.RoseException;
 import bn.blaszczyk.rose.model.Readable;
 import bn.blaszczyk.rose.model.Writable;
-import bn.blaszczyk.rosecommon.proxy.EntityAccess;
 import bn.blaszczyk.rosecommon.proxy.LazyList;
 import bn.blaszczyk.rosecommon.tools.EntityUtils;
 
-final class CacheController extends AbstractControllerDecorator implements ModelController, EntityAccess
+final class CacheController extends AbstractControllerDecorator implements ModelController
 {
 
 	private Cache cache = new Cache();
@@ -82,9 +81,17 @@ final class CacheController extends AbstractControllerDecorator implements Model
 	}
 
 	@Override
-	public <T extends Readable> T createNew(final Class<T> type) throws RoseException
+	public <T extends Writable> T createNew(final Class<T> type) throws RoseException
 	{
 		final T entity = controller.createNew(type);
+		cacheOne(entity);
+		return entity;
+	}
+
+	@Override
+	public <T extends Writable> T createNew(final T entity) throws RoseException
+	{
+		controller.createNew(entity);
 		cacheOne(entity);
 		return entity;
 	}
@@ -101,32 +108,22 @@ final class CacheController extends AbstractControllerDecorator implements Model
 	public void update(final Writable... entities) throws RoseException
 	{
 		for(final Writable entity : entities)
-			assertEqualsCached(entity);
+			ensureCached(entity);
 		controller.update(entities);
 	}
 
 	@Override
 	public void delete(final Writable entity) throws RoseException
 	{
-		assertEqualsCached(entity);
+		ensureCached(entity);
 		cache.remove(entity);
 		controller.delete(entity);
 	}
-
-	@Override
-	public <T extends Readable> T getOne(final Class<T> type, final int id) throws RoseException
-	{
-		return getEntityById(type, id);
-	}
-
-	@Override
-	public <T extends Readable> List<T> getMany(final Class<T> type, final List<Integer> ids) throws RoseException
-	{
-		return getEntitiesByIds(type, ids);
-	}
 	
-	private void assertEqualsCached(final Readable entity) throws RoseException
+	private void ensureCached(final Readable entity) throws RoseException
 	{
+		if(!cache.has(entity))
+			cache.put(entity);
 		if(!cache.hasExact(entity))
 			throw new RoseException("uncached entity: " + EntityUtils.toStringSimple(entity));
 	}

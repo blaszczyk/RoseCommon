@@ -193,7 +193,7 @@ final class PersistenceController implements ModelController
 				final CriteriaBuilder cb = entityManager.getCriteriaBuilder();
 				final CriteriaQuery<T> query = cb.createQuery(type);
 				final Root<? extends T> root = query.from(implType);
-				query.where(cb.equal(root.get("id"), id));
+				query.select(root).where(cb.equal(root.get("id"), id));
 				LOGGER.debug("end " + message);
 				final T result = entityManager.createQuery(query).getSingleResult();
 				if(result == null)
@@ -223,7 +223,7 @@ final class PersistenceController implements ModelController
 				final CriteriaBuilder cb = entityManager.getCriteriaBuilder();
 				final CriteriaQuery<T> query = cb.createQuery(type);
 				final Root<? extends T> root = query.from(implType);
-				query.where(root.get("id").in(ids));
+				query.select(root).where(root.get("id").in(ids));
 				final List<T> entities = entityManager.createQuery(query).getResultList();
 				LOGGER.debug("end " + message);
 				return entities;
@@ -302,12 +302,18 @@ final class PersistenceController implements ModelController
 	}
 
 	@Override
-	public <T extends Readable> T createNew(final Class<T> type) throws RoseException
+	public <T extends Writable> T createNew(final Class<T> type) throws RoseException
 	{
 		final T entity = TypeManager.newInstance(type);
+		return createNew(entity);
+	}
+	
+	@Override
+	public <T extends Writable> T createNew(final T entity) throws RoseException
+	{
 		synchronized (entityManager)
 		{
-			LOGGER.debug("start creating " + type.getSimpleName());
+			LOGGER.debug("start creating " + TypeManager.getClass(entity).getSimpleName());
 			final EntityTransaction transaction = entityManager.getTransaction();
 			transaction.begin();
 			entityManager.persist(entity);

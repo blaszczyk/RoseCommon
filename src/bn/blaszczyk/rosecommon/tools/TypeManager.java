@@ -65,23 +65,24 @@ public class TypeManager {
 			{
 				Class<?> enumClass = Class.forName(enumModel.getClassName());
 				enumClasses.put(enumModel.getSimpleClassName().toLowerCase(), enumClass );
-				LOGGER.info( "load enum class " + enumModel.getClassName());
+				LOGGER.info( "register enum class " + enumModel.getClassName());
 			}
 			catch (ClassNotFoundException e)
 			{
-				LOGGER.error("unable to load enum class " + enumModel.getClassName(), e);
-				throw new RoseException("error loading class for " + enumModel.getSimpleClassName(), e);
+				LOGGER.error("unable to register enum class " + enumModel.getClassName(), e);
+				throw new RoseException("error registering class for " + enumModel.getSimpleClassName(), e);
 			}
 		}
+		final String dtoContainerClassName = metadata.getDtopackage() + "." + metadata.getDtocontainername();
 		try
 		{
-			dtoContainerClass = Class.forName(metadata.getDtopackage() + "." + metadata.getDtocontainername()).asSubclass(DtoContainer.class);
-			LOGGER.info( "load dto container class " + metadata.getDtocontainername());
+			dtoContainerClass = Class.forName(dtoContainerClassName).asSubclass(DtoContainer.class);
+			LOGGER.info( "register dto container class " + dtoContainerClassName);
 		}
 		catch (ClassNotFoundException e)
 		{
-			LOGGER.error("unable to load dto container class " + metadata.getDtocontainername(), e);
-			throw new RoseException("error loading dto container class " + metadata.getDtocontainername(), e);
+			LOGGER.error("unable to register dto container class " + metadata.getDtocontainername(), e);
+			throw new RoseException("error registering dto container class " + metadata.getDtocontainername(), e);
 		}
 	}
 

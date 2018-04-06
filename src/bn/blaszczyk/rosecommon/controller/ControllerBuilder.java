@@ -7,12 +7,13 @@ import java.util.HashMap;
 import java.util.Map;
 
 import bn.blaszczyk.rose.RoseException;
+import bn.blaszczyk.rosecommon.proxy.EntityAccessAdapter;
 import bn.blaszczyk.rosecommon.tools.CommonPreference;
 import bn.blaszczyk.rosecommon.tools.Preferences;
 
 public class ControllerBuilder
 {
-	
+
 	public static ControllerBuilder forService()
 	{
 		final String host = Preferences.getStringValue(CommonPreference.SERVICE_HOST);
@@ -58,7 +59,9 @@ public class ControllerBuilder
 	{
 		cacheController = new CacheController(controller);
 		if(innerController instanceof RestController)
-			((RestController)innerController).setEntityAccess(cacheController);
+			((RestController)innerController).setEntityAccess(new EntityAccessAdapter(cacheController));
+		else if(innerController instanceof FileStorageController)
+			((FileStorageController)innerController).setEntityAccess(new EntityAccessAdapter(cacheController));
 		controller = cacheController;
 		return this;
 	}

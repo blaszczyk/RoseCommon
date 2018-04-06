@@ -52,9 +52,15 @@ abstract class AbstractControllerDecorator implements ModelController
 	}
 	
 	@Override
-	public <T extends Readable> T createNew(final Class<T> type) throws RoseException
+	public <T extends Writable> T createNew(final Class<T> type) throws RoseException
 	{
 		return controller.createNew(type);
+	}
+	
+	@Override
+	public <T extends Writable> T createNew(final T entity) throws RoseException
+	{
+		return controller.createNew(entity);
 	}
 	
 	@Override

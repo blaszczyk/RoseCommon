@@ -60,11 +60,20 @@ final class SynchronizingDecorator extends AbstractControllerDecorator implement
 	}
 	
 	@Override
-	public <T extends Readable> T createNew(final Class<T> type) throws RoseException
+	public <T extends Writable> T createNew(final Class<T> type) throws RoseException
 	{
 		synchronized (controller)
 		{
 			return controller.createNew(type);
+		}
+	}
+	
+	@Override
+	public <T extends Writable> T createNew(final T entity) throws RoseException
+	{
+		synchronized (controller)
+		{
+			return controller.createNew(entity);
 		}
 	}
 	

@@ -37,6 +37,16 @@ final class ConsistencyDecorator extends AbstractControllerDecorator implements 
 			throw new RoseException("Malicious id: " + ids);
 		return controller.getEntitiesByIds(type, ids);
 	}
+	
+	@Override
+	public <T extends Writable> T createNew(final T entity) throws RoseException
+	{
+		if(entity == null)
+			throw new RoseException("Null entity cannot be created");
+		if(entity.getId() >= 0)
+			throw new RoseException("Entity cannot be created with preset id");
+		return super.createNew(entity);
+	}
 
 	@Override
 	public void update(final Writable... entities) throws RoseException

@@ -169,5 +169,7 @@ public class CommonClient {
 		final String absolutePath = path.startsWith("/") ? path : "/" + path;
 		webClient.replacePath(absolutePath);
 		webClient.resetQuery();
+		webClient.encoding("UTF-8");
+		webClient.acceptEncoding("UTF-8");
 	}
 }

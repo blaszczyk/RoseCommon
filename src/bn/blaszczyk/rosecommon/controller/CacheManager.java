@@ -14,6 +14,7 @@ import bn.blaszczyk.rose.model.Dto;
 import bn.blaszczyk.rose.model.DtoContainer;
 import bn.blaszczyk.rose.model.Readable;
 import bn.blaszczyk.rosecommon.proxy.EntityAccess;
+import bn.blaszczyk.rosecommon.proxy.EntityAccessAdapter;
 import bn.blaszczyk.rosecommon.proxy.RoseProxy;
 import bn.blaszczyk.rosecommon.tools.EntityUtils;
 import bn.blaszczyk.rosecommon.tools.TypeManager;
@@ -44,7 +45,7 @@ public class CacheManager
 		
 	private CacheManager(final CacheController controller)
 	{
-		this.access = controller;
+		this.access = new EntityAccessAdapter(controller);
 		this.cache = controller.getCache();
 	}
 	

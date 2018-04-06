@@ -19,7 +19,9 @@ public interface ModelController
 	
 	public <T extends Readable> List<T> getEntitiesByIds(final Class<T> type, final List<Integer> ids) throws RoseException;
 	
-	public <T extends Readable> T createNew(final Class<T> type) throws RoseException;
+	public <T extends Writable> T createNew(final Class<T> type) throws RoseException;
+	
+	public <T extends Writable> T createNew(final T entity) throws RoseException;
 	
 	public Writable createCopy(final Writable entity) throws RoseException;
 	
