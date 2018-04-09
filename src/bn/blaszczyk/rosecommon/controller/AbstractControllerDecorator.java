@@ -1,6 +1,7 @@
 package bn.blaszczyk.rosecommon.controller;
 
 import java.util.List;
+import java.util.Map;
 
 import bn.blaszczyk.rose.RoseException;
 import bn.blaszczyk.rose.model.Readable;
@@ -25,6 +26,12 @@ abstract class AbstractControllerDecorator implements ModelController
 	public <T extends Readable> List<T> getEntities(final Class<T> type) throws RoseException
 	{
 		return controller.getEntities(type);
+	}
+	
+	@Override
+	public <T extends Readable> List<T> getEntities(final Class<T> type, final Map<String, String> query) throws RoseException
+	{
+		return controller.getEntities(type, query);
 	}
 	
 	@Override

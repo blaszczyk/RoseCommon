@@ -1,9 +1,11 @@
 package bn.blaszczyk.rosecommon.client;
 
+import java.io.Closeable;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
 import com.google.gson.Gson;
@@ -15,7 +17,8 @@ import bn.blaszczyk.rose.model.Readable;
 import bn.blaszczyk.rosecommon.dto.DtoContainerRequest;
 import bn.blaszczyk.rosecommon.tools.TypeManager;
 
-public class RoseClient {
+public class RoseClient implements Closeable
+{
 
 	private static final Gson GSON = new Gson();
 	
@@ -65,6 +68,23 @@ public class RoseClient {
 		catch (Exception e)
 		{
 			throw RoseException.wrap(e, "Error on GET@/entity/" + path);
+		}
+	}
+
+	public List<Dto> getDtos(final Class<? extends Readable> type, final Map<String, String> query)
+	{
+		final String path = "/" + type.getSimpleName().toLowerCase();
+		try
+		{
+			final Map<String,Object[]> queries = query.entrySet().stream()
+					.collect(Collectors.toMap(Entry::getKey, e -> new Object[] {e.getValue()}));
+			final String response = client.get(path, queries);
+			final Dto[] dtos = GSON.fromJson(response, TypeManager.getDtoArrayClass(type));
+			return Arrays.asList(dtos);
+		}
+		catch (Exception e)
+		{
+			throw RoseException.wrap(e, "Error on GET@/entity/" + path + "?" + query);
 		}
 	}
 
@@ -157,6 +177,7 @@ public class RoseClient {
 		client.delete(path);
 	}
 
+	@Override
 	public void close()
 	{
 		client.close();

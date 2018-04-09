@@ -42,6 +42,15 @@ final class CacheController extends AbstractControllerDecorator implements Model
 	}
 	
 	@Override
+	public <T extends Readable> List<T> getEntities(final Class<T> type, final Map<String, String> query) throws RoseException
+	{
+		final List<T> entities = controller.getEntities(type, query);
+		return entities.stream()
+				.map(e -> replaceOrCache(e, type))
+				.collect(Collectors.toList());
+	}
+	
+	@Override
 	public <T extends Readable> List<Integer> getIds(final Class<T> type) throws RoseException
 	{
 		if(fetchedTypes.contains(type))
@@ -126,6 +135,14 @@ final class CacheController extends AbstractControllerDecorator implements Model
 			cache.put(entity);
 		if(!cache.hasExact(entity))
 			throw new RoseException("uncached entity: " + EntityUtils.toStringSimple(entity));
+	}
+	
+	private <T extends Readable> T replaceOrCache(final T entity, final Class<T> type) throws RoseException
+	{
+		if(cache.has(entity))
+			return cache.get(type, entity.getId());
+		cache.put(entity);
+		return entity;
 	}
 
 	private void cacheOne(final Readable entity) throws RoseException

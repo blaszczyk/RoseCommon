@@ -52,7 +52,7 @@ public class Cache
 		return entity == get(entity.getClass(), entity.getId());
 	}
 	
-	public <T extends Readable> T get(final Class<T> type, final Integer id)
+	public <T extends Readable> T get(final Class<? extends T> type, final Integer id)
 	{
 		return entities(type).get(id);
 	}

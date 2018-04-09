@@ -7,13 +7,19 @@ import javax.persistence.EntityManagerFactory;
 import javax.persistence.EntityTransaction;
 import javax.persistence.Persistence;
 import javax.persistence.Query;
+import javax.persistence.TypedQuery;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 
 import org.apache.logging.log4j.*;
 
 import bn.blaszczyk.rose.RoseException;
+import bn.blaszczyk.rose.model.EntityField;
+import bn.blaszczyk.rose.model.EntityModel;
+import bn.blaszczyk.rose.model.Field;
+import bn.blaszczyk.rose.model.PrimitiveField;
 import bn.blaszczyk.rose.model.Readable;
 import bn.blaszczyk.rose.model.Writable;
 import bn.blaszczyk.rosecommon.tools.CommonPreference;
@@ -89,36 +95,95 @@ final class PersistenceController implements ModelController
 	@Override
 	public <T extends Readable> List<T> getEntities(final Class<T> type) throws RoseException
 	{
+		return getEntities(type, Collections.emptyMap());
+	}
+	
+	@Override
+	public <T extends Readable> List<T> getEntities(final Class<T> type, final Map<String, String> query) throws RoseException
+	{
 		try
 		{
 			LOGGER.debug("start getting " + type.getSimpleName());
 			synchronized (entityManager)
 			{
-				final Class<? extends T> implType = TypeManager.getImplClass(type);
-				final CriteriaBuilder cb = entityManager.getCriteriaBuilder();
-				final CriteriaQuery<T> query = cb.createQuery(type);
-				final Root<? extends T> root = query.from(implType);
-				query.select(root);
-
-				int fetchTimeSpan = getIntegerValue(FETCH_TIMESPAN);
-				if(fetchTimeSpan != Integer.MAX_VALUE)
-				{
-					calendar.setTime(new Date());
-					calendar.add(Calendar.DATE, - fetchTimeSpan);
-					cb.greaterThanOrEqualTo(root.get(TIMESTAMP), calendar.getTime());
-					LOGGER.debug("fetch entity age restriction: " + fetchTimeSpan + " days");
-				}
-				final List<T> list = entityManager.createQuery(query).getResultList();
+				final TypedQuery<T> typedQuery = createQuery(type, query);
+				final List<T> list = typedQuery.getResultList();
 				
 				LOGGER.debug("end getting " + type.getSimpleName() + " count=" + list.size());
 				return list;
-				
 			}
 		}
 		catch(Exception e)
 		{
 			throw new RoseException("error getting " + type.getSimpleName(), e);
 		}
+	}
+
+	private <T extends Readable> TypedQuery<T> createQuery(final Class<T> type, final Map<String,String> queryParameters)
+	{
+		final Class<? extends T> implType = TypeManager.getImplClass(type);
+		final EntityModel entityModel = TypeManager.getEntityModel(type);
+
+		final CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+		final CriteriaQuery<T> query = cb.createQuery(type);
+		final Root<? extends T> root = query.from(implType);
+		query.select(root).distinct(true);
+
+		final List<Predicate> predicates = new ArrayList<>();
+
+		for(final Field field : entityModel.getFields())
+		{
+			final String name = field.getName();
+			if(queryParameters.containsKey(name))
+				predicates.add(cb.equal(root.get(name), EntityUtils.toEntityValue(field, queryParameters.get(name))));
+			else if(queryParameters.containsKey(name+"_like") &&
+					field instanceof PrimitiveField &&
+					((PrimitiveField)field).getType().getJavaType().equals(String.class))
+				predicates.add(cb.like(root.get(name), "%"+queryParameters.get(name+"_like")+"%"));
+		}
+		
+		for(final EntityField field : entityModel.getEntityFields())
+		{
+			final String name = field.getName();
+			if(queryParameters.containsKey(name))
+			{
+				final int id = Integer.parseInt(queryParameters.get(name));
+				predicates.add(cb.equal(root.join(name).get("id"), id));
+			}
+		}
+
+		final boolean isOr = queryParameters.containsKey("useOr");
+		if(!predicates.isEmpty())
+		{
+			final Predicate[] array = predicates.toArray(new Predicate[predicates.size()]);
+			if(isOr)
+				query.where(cb.or(array));
+			else
+				query.where(cb.and(array));
+		}
+
+		int fetchTimeSpan = getIntegerValue(FETCH_TIMESPAN);
+		if(fetchTimeSpan != Integer.MAX_VALUE)
+		{
+			calendar.setTime(new Date());
+			calendar.add(Calendar.DATE, - fetchTimeSpan);
+			query.where(cb.greaterThanOrEqualTo(root.get(TIMESTAMP), calendar.getTime()));
+			LOGGER.debug("fetch entity age restriction: " + fetchTimeSpan + " days");
+		}
+
+		final int firstResult;
+		if(queryParameters.containsKey("firstResult"))
+			firstResult = Integer.parseInt(queryParameters.get("firstResult"));
+		else
+			firstResult = 0;
+
+		final int maxResults;
+		if(queryParameters.containsKey("maxResults"))
+			maxResults = Integer.parseInt(queryParameters.get("maxResults"));
+		else
+			maxResults = Integer.MAX_VALUE;
+
+		return entityManager.createQuery(query).setFirstResult(firstResult).setMaxResults(maxResults);
 	}
 	
 	@Override

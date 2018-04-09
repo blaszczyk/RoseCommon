@@ -1,6 +1,7 @@
 package bn.blaszczyk.rosecommon.controller;
 
 import java.util.List;
+import java.util.Map;
 
 import bn.blaszczyk.rose.RoseException;
 import bn.blaszczyk.rose.model.Readable;
@@ -10,6 +11,8 @@ public interface ModelController
 {
 	
 	public <T extends Readable> List<T> getEntities(final Class<T> type) throws RoseException;
+	
+	public <T extends Readable> List<T> getEntities(final Class<T> type, final Map<String,String> query) throws RoseException;
 	
 	public <T extends Readable> List<Integer> getIds(final Class<T> type) throws RoseException;
 	

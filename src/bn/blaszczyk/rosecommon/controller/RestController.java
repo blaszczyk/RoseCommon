@@ -2,6 +2,7 @@ package bn.blaszczyk.rosecommon.controller;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import bn.blaszczyk.rose.RoseException;
 import bn.blaszczyk.rose.model.Dto;
@@ -37,6 +38,13 @@ final class RestController implements ModelController
 	{
 		final List<Dto> dtos = client.getDtos(pathFor(type), type);
 		return createProxys(dtos,type);
+	}
+	
+	@Override
+	public <T extends Readable> List<T> getEntities(final Class<T> type, final Map<String, String> query) throws RoseException
+	{
+		final List<Dto> dtos = client.getDtos(type, query);
+		return createProxys(dtos, type);
 	}
 	
 	@Override

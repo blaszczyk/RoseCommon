@@ -1,6 +1,7 @@
 package bn.blaszczyk.rosecommon.controller;
 
 import java.util.List;
+import java.util.Map;
 
 import bn.blaszczyk.rose.RoseException;
 import bn.blaszczyk.rose.model.Readable;
@@ -20,6 +21,15 @@ final class SynchronizingDecorator extends AbstractControllerDecorator implement
 		synchronized (controller)
 		{
 			return controller.getEntities(type);
+		}
+	}
+	
+	@Override
+	public <T extends Readable> List<T> getEntities(final Class<T> type, final Map<String, String> query) throws RoseException
+	{
+		synchronized (controller)
+		{
+			return controller.getEntities(type,query);
 		}
 	}
 	
