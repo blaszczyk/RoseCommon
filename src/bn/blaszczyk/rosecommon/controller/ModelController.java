@@ -1,5 +1,6 @@
 package bn.blaszczyk.rosecommon.controller;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -10,13 +11,21 @@ import bn.blaszczyk.rose.model.Writable;
 public interface ModelController 
 {
 	
-	public <T extends Readable> List<T> getEntities(final Class<T> type) throws RoseException;
+	default public <T extends Readable> List<T> getEntities(final Class<T> type) throws RoseException
+	{
+		return getEntities(type, Collections.emptyMap());
+	};
 	
 	public <T extends Readable> List<T> getEntities(final Class<T> type, final Map<String,String> query) throws RoseException;
 	
 	public <T extends Readable> List<Integer> getIds(final Class<T> type) throws RoseException;
 	
-	public <T extends Readable> int getEntityCount(final Class<T> type) throws RoseException;
+	default public <T extends Readable> int getEntityCount(final Class<T> type) throws RoseException
+	{
+		return getEntityCount(type, Collections.emptyMap());
+	};
+	
+	public <T extends Readable> int getEntityCount(final Class<T> type, final Map<String,String> query) throws RoseException;
 	
 	public <T extends Readable> T getEntityById(final Class<T> type, int id) throws RoseException;
 	

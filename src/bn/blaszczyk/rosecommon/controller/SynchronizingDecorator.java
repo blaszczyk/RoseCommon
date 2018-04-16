@@ -50,6 +50,15 @@ final class SynchronizingDecorator extends AbstractControllerDecorator implement
 			return controller.getEntityCount(type);
 		}
 	}
+
+	@Override
+	public <T extends Readable> int getEntityCount(final Class<T> type, final Map<String,String> query) throws RoseException
+	{
+		synchronized (controller)
+		{
+			return controller.getEntityCount(type,query);
+		}
+	}
 	
 	@Override
 	public <T extends Readable> T getEntityById(final Class<T> type, final int id) throws RoseException

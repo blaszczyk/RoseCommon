@@ -107,6 +107,19 @@ final class PersistenceController implements ModelController
 			synchronized (entityManager)
 			{
 				final TypedQuery<T> typedQuery = createQuery(type, query);
+
+				if(query.containsKey("firstResult"))
+				{
+					final int firstResult = Integer.parseInt(query.get("firstResult"));
+					typedQuery.setFirstResult(firstResult);
+				}
+
+				if(query.containsKey("maxResults"))
+				{
+					final int maxResults = Integer.parseInt(query.get("maxResults"));
+					typedQuery.setMaxResults(maxResults);
+				}
+				
 				final List<T> list = typedQuery.getResultList();
 				
 				LOGGER.debug("end getting " + type.getSimpleName() + " count=" + list.size());
@@ -122,68 +135,15 @@ final class PersistenceController implements ModelController
 	private <T extends Readable> TypedQuery<T> createQuery(final Class<T> type, final Map<String,String> queryParameters)
 	{
 		final Class<? extends T> implType = TypeManager.getImplClass(type);
-		final EntityModel entityModel = TypeManager.getEntityModel(type);
 
 		final CriteriaBuilder cb = entityManager.getCriteriaBuilder();
 		final CriteriaQuery<T> query = cb.createQuery(type);
 		final Root<? extends T> root = query.from(implType);
 		query.select(root).distinct(true);
 
-		final List<Predicate> predicates = new ArrayList<>();
+		transformQuery(queryParameters, type, query, root);
 
-		for(final Field field : entityModel.getFields())
-		{
-			final String name = field.getName();
-			if(queryParameters.containsKey(name))
-				predicates.add(cb.equal(root.get(name), EntityUtils.toEntityValue(field, queryParameters.get(name))));
-			else if(queryParameters.containsKey(name+"_like") &&
-					field instanceof PrimitiveField &&
-					((PrimitiveField)field).getType().getJavaType().equals(String.class))
-				predicates.add(cb.like(root.get(name), "%"+queryParameters.get(name+"_like")+"%"));
-		}
-		
-		for(final EntityField field : entityModel.getEntityFields())
-		{
-			final String name = field.getName();
-			if(queryParameters.containsKey(name))
-			{
-				final int id = Integer.parseInt(queryParameters.get(name));
-				predicates.add(cb.equal(root.join(name).get("id"), id));
-			}
-		}
-
-		final boolean isOr = queryParameters.containsKey("useOr");
-		if(!predicates.isEmpty())
-		{
-			final Predicate[] array = predicates.toArray(new Predicate[predicates.size()]);
-			if(isOr)
-				query.where(cb.or(array));
-			else
-				query.where(cb.and(array));
-		}
-
-		int fetchTimeSpan = getIntegerValue(FETCH_TIMESPAN);
-		if(fetchTimeSpan != Integer.MAX_VALUE)
-		{
-			calendar.setTime(new Date());
-			calendar.add(Calendar.DATE, - fetchTimeSpan);
-			query.where(cb.greaterThanOrEqualTo(root.get(TIMESTAMP), calendar.getTime()));
-			LOGGER.debug("fetch entity age restriction: " + fetchTimeSpan + " days");
-		}
-
-		final int firstResult;
-		if(queryParameters.containsKey("firstResult"))
-			firstResult = Integer.parseInt(queryParameters.get("firstResult"));
-		else
-			firstResult = 0;
-
-		final int maxResults;
-		if(queryParameters.containsKey("maxResults"))
-			maxResults = Integer.parseInt(queryParameters.get("maxResults"));
-		else
-			maxResults = Integer.MAX_VALUE;
-
-		return entityManager.createQuery(query).setFirstResult(firstResult).setMaxResults(maxResults);
+		return entityManager.createQuery(query);
 	}
 	
 	@Override
@@ -220,7 +180,7 @@ final class PersistenceController implements ModelController
 	}
 
 	@Override
-	public <T extends Readable> int getEntityCount(final Class<T> type) throws RoseException
+	public <T extends Readable> int getEntityCount(final Class<T> type, final Map<String,String> query) throws RoseException
 	{
 		final String message = "fetching count for " + type.getSimpleName();
 		try
@@ -230,11 +190,13 @@ final class PersistenceController implements ModelController
 				LOGGER.debug("start " + message);
 				final Class<? extends T> implType = TypeManager.getImplClass(type);
 				final CriteriaBuilder cb = entityManager.getCriteriaBuilder();
-				final CriteriaQuery<Long> query = cb.createQuery(Long.class);
-				final Root<? extends T> root = query.from(implType);
-				query.select(cb.count(root));
+				final CriteriaQuery<Long> countQuery = cb.createQuery(Long.class);
+				final Root<? extends T> root = countQuery.from(implType);
+				countQuery.select(cb.count(root));
+				
+				transformQuery(query, type, countQuery, root);
 
-				final Long count = entityManager.createQuery(query).getSingleResult();
+				final Long count = entityManager.createQuery(countQuery).getSingleResult();
 				LOGGER.debug("end " + message + " count= " + count);
 				return count.intValue();
 			}
@@ -423,6 +385,54 @@ final class PersistenceController implements ModelController
 		catch(Exception e)
 		{
 			throw RoseException.wrap(e, "error closing EntityManager");
+		}
+	}
+
+	private <T extends Readable> void transformQuery(final Map<String, String> queryParameters,
+			final Class<T> type, final CriteriaQuery<?> query, final Root<? extends T> root)
+	{
+		final CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+		final EntityModel entityModel = TypeManager.getEntityModel(type);
+		final List<Predicate> predicates = new ArrayList<>();
+
+		for(final Field field : entityModel.getFields())
+		{
+			final String name = field.getName();
+			if(queryParameters.containsKey(name))
+				predicates.add(cb.equal(root.get(name), EntityUtils.toEntityValue(field, queryParameters.get(name))));
+			else if(queryParameters.containsKey(name+"_like") &&
+					field instanceof PrimitiveField &&
+					((PrimitiveField)field).getType().getJavaType().equals(String.class))
+				predicates.add(cb.like(root.get(name), "%"+queryParameters.get(name+"_like")+"%"));
+		}
+		
+		for(final EntityField field : entityModel.getEntityFields())
+		{
+			final String name = field.getName();
+			if(queryParameters.containsKey(name))
+			{
+				final int id = Integer.parseInt(queryParameters.get(name));
+				predicates.add(cb.equal(root.join(name).get("id"), id));
+			}
+		}
+
+		final boolean isOr = queryParameters.containsKey("useOr");
+		if(!predicates.isEmpty())
+		{
+			final Predicate[] array = predicates.toArray(new Predicate[predicates.size()]);
+			if(isOr)
+				query.where(cb.or(array));
+			else
+				query.where(cb.and(array));
+		}
+
+		int fetchTimeSpan = getIntegerValue(FETCH_TIMESPAN);
+		if(fetchTimeSpan != Integer.MAX_VALUE)
+		{
+			calendar.setTime(new Date());
+			calendar.add(Calendar.DATE, - fetchTimeSpan);
+			query.where(cb.greaterThanOrEqualTo(root.get(TIMESTAMP), calendar.getTime()));
+			LOGGER.debug("fetch entity age restriction: " + fetchTimeSpan + " days");
 		}
 	}
 	

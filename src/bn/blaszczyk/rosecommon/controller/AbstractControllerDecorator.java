@@ -45,6 +45,12 @@ abstract class AbstractControllerDecorator implements ModelController
 	{
 		return controller.getEntityCount(type);
 	}
+
+	@Override
+	public <T extends Readable> int getEntityCount(final Class<T> type, final Map<String,String> query) throws RoseException
+	{
+		return controller.getEntityCount(type,query);
+	}
 	
 	@Override
 	public <T extends Readable> T getEntityById(final Class<T> type, final int id) throws RoseException

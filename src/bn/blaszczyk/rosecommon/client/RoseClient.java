@@ -76,8 +76,7 @@ public class RoseClient implements Closeable
 		final String path = "/" + type.getSimpleName().toLowerCase();
 		try
 		{
-			final Map<String,Object[]> queries = query.entrySet().stream()
-					.collect(Collectors.toMap(Entry::getKey, e -> new Object[] {e.getValue()}));
+			final Map<String, Object[]> queries = transformQuery(query);
 			final String response = client.get(path, queries);
 			final Dto[] dtos = GSON.fromJson(response, TypeManager.getDtoArrayClass(type));
 			return Arrays.asList(dtos);
@@ -86,6 +85,12 @@ public class RoseClient implements Closeable
 		{
 			throw RoseException.wrap(e, "Error on GET@/entity/" + path + "?" + query);
 		}
+	}
+
+	private Map<String, Object[]> transformQuery(final Map<String, String> query) {
+		final Map<String,Object[]> queries = query.entrySet().stream()
+				.collect(Collectors.toMap(Entry::getKey, e -> new Object[] {e.getValue()}));
+		return queries;
 	}
 
 	public List<Integer> getIds(final String typeName) throws RoseException
@@ -130,10 +135,16 @@ public class RoseClient implements Closeable
 
 	public int getCount(final String typeName) throws RoseException
 	{
+		return getCount(typeName, Collections.emptyMap());
+	}
+
+	public int getCount(final String typeName, final Map<String, String> query) throws RoseException
+	{
 		final String path = typeName + "/count";
 		try
 		{
-			final String response = client.get(path);
+			final Map<String, Object[]> queries = transformQuery(query);
+			final String response = client.get(path,queries);
 			return Integer.parseInt(response.trim());
 		}
 		catch (Exception e) 
