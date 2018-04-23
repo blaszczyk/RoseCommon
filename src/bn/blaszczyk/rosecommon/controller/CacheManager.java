@@ -56,7 +56,7 @@ public class CacheManager
 		for(final Class<? extends Readable> type : TypeManager.getEntityClasses())
 		{
 			cache.stream(type)
-					.map(EntityUtils::toDtoSilent)
+					.map(EntityUtils::toDto)
 					.forEach(container::put);
 			LOGGER.debug("writing " + cache.count(type) + " instances of " + type.getSimpleName());
 		}

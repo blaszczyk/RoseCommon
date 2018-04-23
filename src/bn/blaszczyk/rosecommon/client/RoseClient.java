@@ -43,11 +43,11 @@ public class RoseClient implements Closeable
 		}
 	}
 	
-	public Dto getDto(final Class<? extends Readable> type, final int id) throws RoseException
+	public Dto getDto(final Class<? extends Readable> type, final int id, final Map<String, String> query) throws RoseException
 	{
 		try
 		{
-			final String response = client.get("/" + type.getSimpleName().toLowerCase() + "/" + id);
+			final String response = client.get("/" + type.getSimpleName().toLowerCase() + "/" + id, transformQuery(query));
 			final Dto dto = GSON.fromJson(response, TypeManager.getDtoClass(type));
 			return dto;
 		}
@@ -57,20 +57,6 @@ public class RoseClient implements Closeable
 		}
 	}
 	
-	public List<Dto> getDtos(final String path, final Class<? extends Readable> type) throws RoseException
-	{
-		try
-		{
-			final String response = client.get("/" + path.toLowerCase());
-			final Dto[] dtos = GSON.fromJson(response, TypeManager.getDtoArrayClass(type));
-			return Arrays.asList(dtos);
-		}
-		catch (Exception e)
-		{
-			throw RoseException.wrap(e, "Error on GET@/entity/" + path);
-		}
-	}
-
 	public List<Dto> getDtos(final Class<? extends Readable> type, final Map<String, String> query)
 	{
 		final String path = "/" + type.getSimpleName().toLowerCase();
@@ -87,7 +73,10 @@ public class RoseClient implements Closeable
 		}
 	}
 
-	private Map<String, Object[]> transformQuery(final Map<String, String> query) {
+	private Map<String, Object[]> transformQuery(final Map<String, String> query)
+	{
+		if(query == null)
+			return Collections.emptyMap();
 		final Map<String,Object[]> queries = query.entrySet().stream()
 				.collect(Collectors.toMap(Entry::getKey, e -> new Object[] {e.getValue()}));
 		return queries;
@@ -109,28 +98,6 @@ public class RoseClient implements Closeable
 		{
 			throw RoseException.wrap(e, "Error on GET@/entity/" + path);
 		}
-	}
-
-	public List<Dto> getDtos(final Class<? extends Readable> type, final List<Integer> entityIds) throws RoseException
-	{
-		if(entityIds.isEmpty())
-			return Collections.emptyList();
-		try
-		{
-			final Map<String, Object[]> query = Collections.singletonMap("id", new Object[] {commaSeparated(entityIds)});
-			final String response = client.get("/" + type.getSimpleName().toLowerCase(), query);
-			final Dto[] dtos = GSON.fromJson(response, TypeManager.getDtoArrayClass(type));
-			return Arrays.asList(dtos);
-		}
-		catch (Exception e)
-		{
-			throw RoseException.wrap(e, "Error on GET@/entity/" + type.getSimpleName().toLowerCase());
-		}
-	}
-
-	public List<Dto> getDtos(final Class<? extends Readable> type, final int[] entityIds) throws RoseException
-	{
-		return getDtos(type, Arrays.stream(entityIds).mapToObj(Integer::new).collect(Collectors.toList()));
 	}
 
 	public int getCount(final String typeName) throws RoseException
@@ -208,21 +175,6 @@ public class RoseClient implements Closeable
 		if(id < 0)
 			throw new RoseException("invalid id " + id);
 		return pathForType(dto) + "/" + id;
-	}
-	
-	private static String commaSeparated(final List<?> list)
-	{
-		boolean first = true;
-		final StringBuilder sb = new StringBuilder();
-		for(final Object o : list)
-		{
-			if(first)
-				first = false;
-			else
-				sb.append(",");
-			sb.append(o);
-		}
-		return sb.toString();
 	}
 
 }

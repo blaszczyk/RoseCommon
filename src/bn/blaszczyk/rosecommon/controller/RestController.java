@@ -1,11 +1,14 @@
 package bn.blaszczyk.rosecommon.controller;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import bn.blaszczyk.rose.RoseException;
 import bn.blaszczyk.rose.model.Dto;
+import bn.blaszczyk.rose.model.DtoLinkType;
 import bn.blaszczyk.rose.model.Readable;
 import bn.blaszczyk.rose.model.Timestamped;
 import bn.blaszczyk.rose.model.Writable;
@@ -18,6 +21,12 @@ import bn.blaszczyk.rosecommon.tools.TypeManager;
 
 final class RestController implements ModelController
 {
+	private static final Map<String,String> DTO_LINK_QUERY = new HashMap<>(2);
+	static
+	{
+		DTO_LINK_QUERY.put("one", DtoLinkType.ID.name());
+		DTO_LINK_QUERY.put("many", DtoLinkType.ID.name());
+	}
 	
 	private final RoseClient client;
 	private EntityAccess access;
@@ -36,14 +45,16 @@ final class RestController implements ModelController
 	@Override
 	public <T extends Readable> List<T> getEntities(final Class<T> type) throws RoseException
 	{
-		final List<Dto> dtos = client.getDtos(pathFor(type), type);
+		final List<Dto> dtos = client.getDtos(type, DTO_LINK_QUERY);
 		return createProxys(dtos,type);
 	}
 	
 	@Override
 	public <T extends Readable> List<T> getEntities(final Class<T> type, final Map<String, String> query) throws RoseException
 	{
-		final List<Dto> dtos = client.getDtos(type, query);
+		final Map<String,String> fullQuery = new HashMap<>(query);
+		fullQuery.putAll(DTO_LINK_QUERY);
+		final List<Dto> dtos = client.getDtos(type, fullQuery);
 		return createProxys(dtos, type);
 	}
 	
@@ -67,14 +78,15 @@ final class RestController implements ModelController
 	@Override
 	public <T extends Readable> T getEntityById(final Class<T> type, final int id) throws RoseException
 	{
-		final Dto dto = client.getDto(type, id);
+		final Dto dto = client.getDto(type, id, DTO_LINK_QUERY);
 		return type.cast(RoseProxy.create(dto, access));
 	}
 	
 	@Override
 	public <T extends Readable> List<T> getEntitiesByIds(final Class<T> type, final List<Integer> ids) throws RoseException
 	{
-		final List<Dto> dtos = client.getDtos(type, ids);
+		final Map<String, String> query = Collections.singletonMap("id", commaSeparated(ids));
+		final List<Dto> dtos = client.getDtos(type, query);
 		return createProxys(dtos,type);
 	}
 	
@@ -139,6 +151,21 @@ final class RestController implements ModelController
 	private String pathFor(final Writable entity)
 	{
 		return entity.getEntityName().toLowerCase();
+	}
+	
+	private static String commaSeparated(final List<?> list)
+	{
+		boolean first = true;
+		final StringBuilder sb = new StringBuilder();
+		for(final Object o : list)
+		{
+			if(first)
+				first = false;
+			else
+				sb.append(",");
+			sb.append(o);
+		}
+		return sb.toString();
 	}
 	
 }

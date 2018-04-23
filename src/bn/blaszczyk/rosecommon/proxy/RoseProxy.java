@@ -7,7 +7,6 @@ import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.*;
 
@@ -93,7 +92,7 @@ public class RoseProxy implements InvocationHandler {
 	
 	private void setEntityIds(final int index, final Dto dto)
 	{
-		final int[] ids;
+		final Integer[] ids;
 		final String fieldName = entityModel.getEntityFields().get(index).getName();
 		if(entity.getRelationType(index).isSecondMany())
 		{
@@ -106,9 +105,9 @@ public class RoseProxy implements InvocationHandler {
 			final int id = dto.getEntityId(fieldName);
 			if(id < 0)
 				fetched[index] = true;
-			ids = new int[]{id};
+			ids = new Integer[]{id};
 		}
-		allIds.add(index, Arrays.stream(ids).mapToObj(Integer::new).collect(Collectors.toList()));
+		allIds.add(index, Arrays.asList(ids));
 	}
 	
 	private int getFetchIndex(final Method method, final Object[] args)

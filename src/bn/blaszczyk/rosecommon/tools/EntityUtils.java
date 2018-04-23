@@ -7,6 +7,7 @@ import java.util.Set;
 
 import bn.blaszczyk.rose.RoseException;
 import bn.blaszczyk.rose.model.Dto;
+import bn.blaszczyk.rose.model.DtoLinkType;
 import bn.blaszczyk.rose.model.EntityField;
 import bn.blaszczyk.rose.model.EntityModel;
 import bn.blaszczyk.rose.model.EnumField;
@@ -16,7 +17,8 @@ import bn.blaszczyk.rose.model.PrimitiveField;
 import bn.blaszczyk.rose.model.PrimitiveType;
 import bn.blaszczyk.rose.model.Readable;
 
-public final class EntityUtils {
+public final class EntityUtils
+{
 	
 	public static Object toEntityValue(final Field field, final Object dtoValue) throws RoseException
 	{
@@ -94,8 +96,10 @@ public final class EntityUtils {
 		return null;
 	}
 	
-	public static Dto toDto(final Readable entity) throws RoseException
+	public static Dto toDto(final Readable entity, final DtoLinkType oneType, final DtoLinkType manyType) throws RoseException
 	{
+		if(entity == null)
+			return null;
 		final EntityModel entityModel = TypeManager.getEntityModel(entity);
 		final Dto dto = TypeManager.newDtoInstance(entity.getEntityName());
 		dto.setId(entity.getId());
@@ -109,30 +113,37 @@ public final class EntityUtils {
 		for(int i = 0; i < entity.getEntityCount(); i++)
 			if(entity.getRelationType(i).isSecondMany())
 			{
-				final int[] ids = entity.getEntityValueMany(i).stream()
-					.mapToInt(Identifyable::getId)
-					.toArray();
-				dto.setEntityIds(entity.getEntityName(i), ids);
+				if(manyType.equals(DtoLinkType.ID))
+				{
+					final Integer[] ids = entity.getEntityValueMany(i).stream()
+						.map(Identifyable::getId)
+						.toArray(Integer[]::new);
+					dto.setEntityIds(entity.getEntityName(i), ids);
+				}
+				else if(manyType.equals(DtoLinkType.COUNT))
+					dto.setEntityCount(entity.getEntityName(i), entity.getEntityValueMany(i).size());
 			}
 			else
 			{
 				final Readable value = entity.getEntityValueOne(i);
-				final int id = value == null ? -1 : value.getId();
-				dto.setEntityId(entity.getEntityName(i), id);
+				if(oneType.equals(DtoLinkType.ID))
+				{
+					final int id = value == null ? -1 : value.getId();
+					dto.setEntityId(entity.getEntityName(i), id);
+				}
+				else if(oneType.equals(DtoLinkType.ENTITY) || 
+						( oneType.equals(DtoLinkType.ENTITY_CASCADE) && entity.getRelationType(i).isFirstMany() ) )
+				{
+					final Dto subDto = toDto(value, DtoLinkType.ENTITY_CASCADE, DtoLinkType.NONE);
+					dto.setEntity(entity.getEntityName(i), subDto);
+				}
 			}
 		return dto;
 	}
 	
-	public static Dto toDtoSilent(final Readable entity)
+	public static Dto toDto(final Readable entity) throws RoseException
 	{
-		try
-		{
-			return toDto(entity);
-		}
-		catch(final RoseException e)
-		{
-			throw new RuntimeException(e.getFullMessage(), e);
-		}
+		return toDto(entity, DtoLinkType.ID, DtoLinkType.ID);
 	}
 	
 	public static String toStringSimple(Identifyable entity)
