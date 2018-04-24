@@ -100,7 +100,7 @@ final class RestController implements ModelController
 	@Override
 	public <T extends Writable> T createNew(final T entity) throws RoseException
 	{
-		final Dto dto = EntityUtils.toDto(entity);
+		final Dto dto = toDto(entity);
 		final Dto recievedDto = client.postDto(dto);
 		entity.setId(recievedDto.getId());
 		if(entity instanceof Timestamped && recievedDto instanceof Timestamped)
@@ -111,7 +111,7 @@ final class RestController implements ModelController
 	@Override
 	public Writable createCopy(final Writable entity) throws RoseException
 	{
-		final Dto dto = EntityUtils.toDto(entity);
+		final Dto dto = toDto(entity);
 		client.postDto(dto);
 		return entity;
 	}
@@ -120,7 +120,7 @@ final class RestController implements ModelController
 	public void update(final Writable... entities) throws RoseException
 	{
 		for(final Writable entity : entities)
-			client.putDto(EntityUtils.toDto(entity));
+			client.putDto(toDto(entity));
 	}
 	
 	@Override
@@ -166,6 +166,11 @@ final class RestController implements ModelController
 			sb.append(o);
 		}
 		return sb.toString();
+	}
+	
+	private static Dto toDto(final Readable entity) throws RoseException
+	{
+		return EntityUtils.toDto(entity, DtoLinkType.ID, DtoLinkType.ID);
 	}
 	
 }

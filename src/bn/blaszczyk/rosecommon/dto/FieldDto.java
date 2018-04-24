@@ -27,6 +27,7 @@ public class FieldDto
 	private final String name;
 	private final String entity;
 	private final FieldType fieldType;
+	private final String counterName;
 
 	public FieldDto(final Field field)
 	{
@@ -38,18 +39,21 @@ public class FieldDto
 			final PrimitiveField pField = (PrimitiveField) field;
 			fieldType = convert(pField.getType());
 			entity = null;
+			counterName = null;
 		}
 		else if(field instanceof EnumField)
 		{
 			final EnumField eField = (EnumField) field;
 			fieldType = FieldType.ENUM;
 			entity = eField.getEnumName();
+			counterName = null;
 		}
 		else if(field instanceof EntityField)
 		{
 			final EntityField eField = (EntityField) field;
 			fieldType = convert(eField.getType());
 			entity = eField.getEntityName();
+			counterName = eField.getCounterName();
 		}
 		else
 		{
@@ -70,6 +74,11 @@ public class FieldDto
 	public final FieldType getFieldType()
 	{
 		return fieldType;
+	}
+
+	public final String getCounterName()
+	{
+		return counterName;
 	}
 
 	private static FieldType convert(final PrimitiveType type)

@@ -141,11 +141,6 @@ public final class EntityUtils
 		return dto;
 	}
 	
-	public static Dto toDto(final Readable entity) throws RoseException
-	{
-		return toDto(entity, DtoLinkType.ID, DtoLinkType.ID);
-	}
-	
 	public static String toStringSimple(Identifyable entity)
 	{
 		return String.format("%s id=%d", entity.getClass().getSimpleName(), entity.getId());

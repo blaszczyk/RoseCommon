@@ -12,6 +12,7 @@ import com.google.gson.Gson;
 import bn.blaszczyk.rose.RoseException;
 import bn.blaszczyk.rose.model.Dto;
 import bn.blaszczyk.rose.model.DtoContainer;
+import bn.blaszczyk.rose.model.DtoLinkType;
 import bn.blaszczyk.rose.model.Readable;
 import bn.blaszczyk.rosecommon.proxy.EntityAccess;
 import bn.blaszczyk.rosecommon.proxy.EntityAccessAdapter;
@@ -56,7 +57,7 @@ public class CacheManager
 		for(final Class<? extends Readable> type : TypeManager.getEntityClasses())
 		{
 			cache.stream(type)
-					.map(EntityUtils::toDto)
+					.map(e -> EntityUtils.toDto(e, DtoLinkType.ID, DtoLinkType.ID ))
 					.forEach(container::put);
 			LOGGER.debug("writing " + cache.count(type) + " instances of " + type.getSimpleName());
 		}
